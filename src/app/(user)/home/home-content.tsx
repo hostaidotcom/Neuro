@@ -13,6 +13,8 @@ import ChatInterface from "@/app/(user)/chat/[id]/chat-interface"
 import { useUser } from "@/hooks/use-user"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { CheckCircle2, Loader2, ExternalLink } from "lucide-react"
 import { RiTwitterXFill } from "@remixicon/react"
 import Link from "next/link"
@@ -53,6 +55,7 @@ export function HomeContent() {
     const { user, isLoading } = useUser()
     const [verifyingTx, setVerifyingTx] = useState<string | null>(null)
     const [verificationAttempts, setVerificationAttempts] = useState(0)
+    const [manualVerifyTxHash, setManualVerifyTxHash] = useState("")
     const MAX_VERIFICATION_ATTEMPTS = 20 // 20 attempts * 3s = 60s total
 
     const { messages, input, handleSubmit, setInput } = useChat({
@@ -169,6 +172,32 @@ export function HomeContent() {
             setIsProcessing(false)
         }
     }
+
+    const handleTxManualVerifySubmit = async () => {
+        setIsProcessing(true);
+        setVerificationAttempts(0);
+        try {
+            if (user?.earlyAccess) {
+            return;
+            }
+            if (manualVerifyTxHash) {
+            setVerifyingTx(manualVerifyTxHash);
+            toast.success("Verifying Transaction", {
+                description: "Transaction hash received. Verifying your purchase...",
+            });
+            } else {
+            toast.error("Transaction Failed", {
+                description: "Failed to check the transaction. Please try again.",
+            });
+            }
+        } catch (error) {
+            console.error("Transaction error:", error);
+
+            toast.error("Transaction CheckFailed");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -299,6 +328,31 @@ export function HomeContent() {
                                             </>
                                         ) : (
                                             `Join EAP (${EAP_PRICE} SOL)`
+                                        )}
+                                    </Button>
+                                </div>
+                                <div className="flex justify-between gap-4 items-end">
+                                    <div className="flex-1 space-y-2">
+                                        <Label>Already Purchased?</Label>
+                                        <Input
+                                        value={manualVerifyTxHash}
+                                        onChange={(e) => setManualVerifyTxHash(e.target.value)}
+                                        placeholder="Enter Transaction Hash"
+                                        />
+                                    </div>
+
+                                    <Button
+                                        onClick={handleTxManualVerifySubmit}
+                                        disabled={isProcessing}
+                                        className="bg-teal-500/70 hover:bg-teal-500/90 dark:bg-teal-500/60 dark:hover:bg-teal-500/80 ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    >
+                                        {isProcessing ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Processing
+                                        </>
+                                        ) : (
+                                        `Check TX`
                                         )}
                                     </Button>
                                 </div>

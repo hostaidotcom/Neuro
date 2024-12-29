@@ -16,6 +16,7 @@ import {
   defaultSystemPrompt,
   defaultTools,
 } from '@/ai/providers';
+import { MAX_TOKEN_MESSAGES } from '@/lib/constants';
 import {
   getMostRecentUserMessage,
   sanitizeResponseMessages,
@@ -30,7 +31,6 @@ import {
 } from '@/server/db/queries';
 
 export const maxDuration = 30;
-export const maxMessages = 5;
 
 export async function POST(req: Request) {
   const session = await verifyUser();
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
 
     // Filter to relevant messages for context sizing
     const relevantMessages: CoreMessage[] = coreMessages.slice(
-      -maxMessages,
+      -MAX_TOKEN_MESSAGES,
     ) as CoreMessage[];
 
     const result = streamText({

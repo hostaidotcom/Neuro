@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  solana-agent-kit:
+    hash: as52nrcqh37hk7l3c4guggcl54
+    path: patches/solana-agent-kit.patch
+
 importers:
 
   .:
@@ -139,7 +144,7 @@ importers:
         version: 4.0.0
       solana-agent-kit:
         specifier: 1.3.2
-        version: 1.3.2(@noble/hashes@1.6.1)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.8)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(sodium-native@3.4.1)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.24.1)
+        version: 1.3.2(patch_hash=as52nrcqh37hk7l3c4guggcl54)(@noble/hashes@1.6.1)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.8)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(sodium-native@3.4.1)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.24.1)
       sonner:
         specifier: ^1.7.1
         version: 1.7.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -8508,7 +8513,7 @@ snapshots:
 
   '@solana/errors@2.0.0-preview.2':
     dependencies:
-      chalk: 5.4.0
+      chalk: 5.4.1
       commander: 12.1.0
 
   '@solana/errors@2.0.0-preview.4(typescript@5.7.2)':
@@ -8519,13 +8524,13 @@ snapshots:
 
   '@solana/errors@2.0.0-rc.1(typescript@4.9.5)':
     dependencies:
-      chalk: 5.4.0
+      chalk: 5.4.1
       commander: 12.1.0
       typescript: 4.9.5
 
   '@solana/errors@2.0.0-rc.1(typescript@5.7.2)':
     dependencies:
-      chalk: 5.4.0
+      chalk: 5.4.1
       commander: 12.1.0
       typescript: 5.7.2
 
@@ -12877,7 +12882,7 @@ snapshots:
       typedarray-to-buffer: 3.1.5
       xsalsa20: 1.2.0
 
-  solana-agent-kit@1.3.2(@noble/hashes@1.6.1)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.8)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(sodium-native@3.4.1)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.24.1):
+  solana-agent-kit@1.3.2(patch_hash=as52nrcqh37hk7l3c4guggcl54)(@noble/hashes@1.6.1)(axios@1.7.9)(borsh@2.0.0)(buffer@6.0.3)(bufferutil@4.0.8)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(sodium-native@3.4.1)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.24.1):
     dependencies:
       '@bonfida/spl-name-service': 3.0.7(@solana/web3.js@1.98.0(bufferutil@4.0.8)(encoding@0.1.13)(utf-8-validate@5.0.10))(bufferutil@4.0.8)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.2)(utf-8-validate@5.0.10)
       '@coral-xyz/anchor': 0.29.0(bufferutil@4.0.8)(encoding@0.1.13)(utf-8-validate@5.0.10)

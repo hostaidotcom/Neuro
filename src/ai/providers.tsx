@@ -9,6 +9,7 @@ import { utilTools } from './generic/util';
 import { definedTools } from './solana/defined-fi';
 import { dexscreenerTools } from './solana/dexscreener';
 import { jupiterTools } from './solana/jupiter';
+import { tokenPriceChartTool } from './solana/price-chart';
 import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
@@ -101,6 +102,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...magicEdenTools,
   ...jinaTools,
   ...utilTools,
+  ...tokenPriceChartTool,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {

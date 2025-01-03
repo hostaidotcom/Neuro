@@ -1,5 +1,5 @@
+import { HermesClient } from '@pythnetwork/hermes-client';
 import { z } from 'zod';
-import { HermesClient } from "@pythnetwork/hermes-client";
 
 /**
  * Fetches the last 10 prices for a given feed ID starting from a given start time.
@@ -11,30 +11,29 @@ import { HermesClient } from "@pythnetwork/hermes-client";
  * @returns An array of price objects with time and value.
  */
 async function fetchLast10Prices(
-  connection: HermesClient, 
-  feedId: string, 
-  startTime: number
+  connection: HermesClient,
+  feedId: string,
+  startTime: number,
 ): Promise<{ time: string; value: number }[]> {
   const prices: { time: string; value: number }[] = [];
   const interval = 15 * 60; // 15 minutes in seconds
 
   for (let i = 0; i < 10; i++) {
     const time = startTime - i * interval; // Decrease the time by 15 minutes for each iteration
-    console.log("Price at ",feedId," time ",time)
     try {
-      const priceUpdates = await connection.getPriceUpdatesAtTimestamp(time, [feedId]);
-      if(priceUpdates.parsed){
-        const update = priceUpdates.parsed
-          const price = priceUpdates.parsed[0].price.price
-          const expo = priceUpdates.parsed[0].price.expo
-          const actualPrice = Number(price) * Math.pow(10, expo);
-  
-          prices.push({
-            time: new Date(time * 1000).toISOString(), // Convert UNIX timestamp to ISO string
-            value: actualPrice,
-          });
+      const priceUpdates = await connection.getPriceUpdatesAtTimestamp(time, [
+        feedId,
+      ]);
+      if (priceUpdates.parsed) {
+        const update = priceUpdates.parsed;
+        const price = priceUpdates.parsed[0].price.price;
+        const expo = priceUpdates.parsed[0].price.expo;
+        const actualPrice = Number(price) * Math.pow(10, expo);
+        prices.push({
+          time: new Date(time * 1000).toISOString(), // Convert UNIX timestamp to ISO string
+          value: actualPrice,
+        });
       }
-    
     } catch (error) {
       console.error(`Error fetching price at timestamp ${time}:`, error);
     }
@@ -54,12 +53,23 @@ async function fetchLast10Prices(
 export const fetchPriceHistory = async (
   tokenName: string,
 ): Promise<{ time: string; value: number }[]> => {
-  const connection = new HermesClient("https://hermes.pyth.network", {});
-  const priceFeeds = await connection.getPriceFeeds({query:tokenName,filter:"crypto"});
-  const feed = priceFeeds.filter((feed)=>feed.attributes["base"].toLocaleLowerCase()===tokenName.toLocaleLowerCase())[0]
+  const connection = new HermesClient('https://hermes.pyth.network', {});
+  const priceFeeds = await connection.getPriceFeeds({
+    query: tokenName,
+    filter: 'crypto',
+  });
+  const feed = priceFeeds.filter(
+    (feed) =>
+      feed.attributes['base'].toLocaleLowerCase() ===
+      tokenName.toLocaleLowerCase(),
+  )[0];
   const currentTime = Math.floor(Date.now() / 1000); // Current timestamp in seconds (UNIX format)
 
-  const last10Prices = await fetchLast10Prices(connection, feed.id, currentTime);
+  const last10Prices = await fetchLast10Prices(
+    connection,
+    feed.id,
+    currentTime,
+  );
 
   return last10Prices;
 };

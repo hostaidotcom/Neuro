@@ -1,11 +1,16 @@
-import sendTelegramNotification from '@/server/actions/telegram';
 import { z } from 'zod';
+
+import sendTelegramNotification from '@/server/actions/telegram';
 
 // Reusable component for rendering success messages
 function SuccessMessage({ message }: { message: string }) {
   return (
-    <div className="rounded-lg bg-success/10 p-4 text-success">
-      <p className="text-sm">{message}</p>
+    <div className="bg-success/10 text-success rounded-lg p-4">
+      <p className="text-base">{message}</p>
+      <p className="text-sm">
+        If you don&apos;t still add the telegram bot, please use this link{' '}
+        {process.env.TELEGRAM_BOT_LINK}
+      </p>
     </div>
   );
 }
@@ -23,7 +28,8 @@ function ErrorMessage({ error }: { error: string }) {
 export const telegramTool = {
   sendNotification: {
     displayName: '📨 Send Telegram Notification', // Tool display name
-    description: 'Send a notification message to a specified Telegram user or chat ID.', // Description of the tool
+    description:
+      'Send a notification message to a specified Telegram user or chat ID.', // Description of the tool
     parameters: z.object({
       chatId: z
         .string()
@@ -54,7 +60,7 @@ export const telegramTool = {
         // Check if the response indicates success
         if (!response || !response.data || !('success' in response.data)) {
           throw new Error(
-            response?.data?.error || 'Failed to send notification'
+            response?.data?.error || 'Failed to send notification',
           );
         }
 

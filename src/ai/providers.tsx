@@ -5,6 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 import { jinaTools } from './generic/jina';
+import { telegramTool } from './generic/telegramBoot';
 import { utilTools } from './generic/util';
 import { definedTools } from './solana/defined-fi';
 import { dexscreenerTools } from './solana/dexscreener';
@@ -12,7 +13,6 @@ import { jupiterTools } from './solana/jupiter';
 import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
-import { telegramTool } from './generic/telegramBoot';
 
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 

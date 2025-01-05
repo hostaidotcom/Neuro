@@ -65,4 +65,4 @@ export const INTEGRATIONS: Integration[] = [
       secondary: '#181432', // White
     },
   },
-];
+]

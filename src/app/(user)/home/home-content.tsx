@@ -27,6 +27,7 @@ import { IntegrationsGrid } from './components/integrations-grid';
 import { ConversationInput } from './conversation-input';
 import { getRandomSuggestions } from './data/suggestions';
 import { SuggestionCard } from './suggestion-card';
+import { DiscordIntegration } from './components/DiscordIntegration';
 
 const EAP_PRICE = 1.0;
 const RECEIVE_WALLET_ADDRESS =
@@ -217,7 +218,8 @@ export function HomeContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [chatId, resetChat]);
 
-  if (isLoading) {
+
+    if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -272,7 +274,9 @@ export function HomeContent() {
             <BlurFade delay={0.4}>
               <div className="space-y-2">
                 <SectionTitle>Integrations</SectionTitle>
-                <IntegrationsGrid />
+                <IntegrationsGrid>
+                     <DiscordIntegration />
+                 </IntegrationsGrid>
               </div>
             </BlurFade>
           </div>
@@ -296,7 +300,7 @@ export function HomeContent() {
                     Early Access Program
                   </h2>
                   <div className="text-muted-foreground">
-                    We&apos;re currently limiting <Badge>BETA</Badge> access to
+                    We're currently limiting <Badge>BETA</Badge> access to
                     a limited amount of users to ensure stable service while
                     continuing to refine features.
                   </div>
@@ -325,7 +329,7 @@ export function HomeContent() {
                     Funds will be allocated to cover expenses such as LLM
                     integration, RPC data services, infrastructure maintenance,
                     and other operational costs, all aimed at ensuring the
-                    platform&apos;s stability and reliability.
+                    platform's stability and reliability.
                   </div>
                 </div>
 

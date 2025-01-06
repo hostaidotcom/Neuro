@@ -1,57 +1,62 @@
+import { ExternalLink } from 'lucide-react';
 import { z } from 'zod';
 
-import { sendTelegramNotification } from '@/server/actions/telegram';
+import { Card } from '@/components/ui/card';
+import {
+  BOT_NOT_STARTED_ERROR,
+  MISSING_USERNAME_ERROR,
+  checkTelegramUsername,
+  sendTelegramNotification,
+} from '@/server/actions/telegram';
+
+interface TelegramResult {
+  success: boolean;
+  data?: string;
+  error?: string;
+  botId?: string;
+}
 
 export const telegramTools = {
-  sendNotification: {
+  sendTelegramNotification: {
     displayName: '📨 Send Telegram Notification',
     isCollapsible: true,
+    isExpandedByDefault: true,
     description:
-      'Send a notification message to a Telegram user. Username and chat ID are optional as we may have saved them in the database',
+      'Send a notification message to a Telegram user. Username is optional if saved in the database.',
     parameters: z.object({
-      username: z
-        .string()
-        .optional()
-        .describe(
-          'The Telegram username to send the message to. You can leave this empty if the user did not provide a username',
-        ),
-      chatId: z
-        .string()
-        .optional()
-        .describe(
-          'The Telegram chat ID to send the message to. You can leave this empty if the user did not provide a chat ID',
-        ),
-      message: z.string().describe('The message to send'),
+      username: z.string().optional(),
+      message: z.string(),
     }),
     execute: async ({
       username,
-      chatId,
       message,
     }: {
       username?: string;
-      chatId?: string;
       message: string;
-    }) => {
+    }): Promise<TelegramResult> => {
       try {
-        const response = await sendTelegramNotification({
-          username,
-          chatId,
-          text: message,
-        });
-        if (
-          !response ||
-          !response.data ||
-          !('success' in response.data && response.data.success === true)
-        ) {
-          throw new Error(
-            response?.data?.error || 'Failed to send notification',
-          );
+        const usernameCheck = await checkTelegramUsername();
+
+        if (!username && !usernameCheck.username) {
+          return { success: false, error: MISSING_USERNAME_ERROR };
         }
 
-        return {
-          success: true,
-          data: 'Notification sent successfully',
-        };
+        const finalUsername = username || usernameCheck.username;
+        const response = await sendTelegramNotification({
+          username: finalUsername,
+          text: message,
+        });
+
+        if (!response?.data?.data) {
+          return { success: false, error: 'No response from Telegram action' };
+        }
+
+        const { success, error, botId } = response.data.data;
+        if (!success) {
+          return { success, error, botId };
+        }
+
+        return { success: true, data: 'Notification sent successfully' };
       } catch (error) {
         return {
           success: false,
@@ -63,25 +68,70 @@ export const telegramTools = {
       }
     },
     render: (result: unknown) => {
-      const typedResult = result as {
-        success: boolean;
-        data?: string;
-        error?: string;
-      };
+      const typedResult = result as TelegramResult;
 
-      if (!typedResult.success) {
+      if (
+        !typedResult.success &&
+        typedResult.error === MISSING_USERNAME_ERROR
+      ) {
         return (
-          <div className="relative overflow-hidden rounded-2xl bg-destructive/5 p-4">
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-destructive">
-                Error: {typedResult.error}
-              </p>
-            </div>
-          </div>
+          <Card className="bg-card p-6">
+            <h2 className="mb-3 text-xl font-semibold text-card-foreground">
+              Missing Telegram Username
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Please provide a Telegram username so we can send notifications.
+            </p>
+          </Card>
         );
       }
 
-      return <>{/* Render success message */}</>;
+      if (!typedResult.success && typedResult.error === BOT_NOT_STARTED_ERROR) {
+        const { botId } = typedResult;
+        return (
+          <Card className="bg-card p-6">
+            <h2 className="mb-3 text-xl font-semibold text-card-foreground">
+              Bot Not Started
+            </h2>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                You need to start the bot before sending Telegram notifications.
+              </p>
+              <p className="flex items-center gap-1">
+                <span>Click here to start:</span>
+                <a
+                  href={`https://t.me/${botId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-md font-medium underline hover:text-primary"
+                >
+                  @{botId}
+                  <ExternalLink className="ml-1 inline-block h-3 w-3" />
+                </a>
+              </p>
+            </div>
+          </Card>
+        );
+      }
+
+      if (!typedResult.success) {
+        return (
+          <Card className="bg-card p-6">
+            <h2 className="mb-3 text-xl font-semibold text-destructive">
+              Error
+            </h2>
+            <p className="text-sm text-muted-foreground">{typedResult.error}</p>
+          </Card>
+        );
+      }
+
+      return (
+        <Card className="bg-card p-6">
+          <h2 className="text-xl font-semibold text-card-foreground">
+            Telegram Notification Sent! ✅
+          </h2>
+        </Card>
+      );
     },
   },
 };

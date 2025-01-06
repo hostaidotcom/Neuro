@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "users" ADD COLUMN     "telegram_id" TEXT;
+ALTER TABLE "users" ADD COLUMN     "telegramId" TEXT;

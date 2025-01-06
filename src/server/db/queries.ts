@@ -278,7 +278,7 @@ export async function dbUpdateUserTelegramId({
   try {
     return await prisma.user.update({
       where: { id: userId },
-      data: { telegram_id: telegramId },
+      data: { telegramId: telegramId },
     });
   } catch (error) {
     console.error('[DB Error] Failed to update user Telegram ID:', {
@@ -300,9 +300,9 @@ export async function dbGetUserTelegramId({ userId }: { userId: string }) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { telegram_id: true },
+      select: { telegramId: true },
     });
-    return user?.telegram_id || null;
+    return user?.telegramId || null;
   } catch (error) {
     console.error('[DB Error] Failed to get user Telegram ID:', {
       userId,

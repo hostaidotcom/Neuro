@@ -128,7 +128,7 @@ export const telegramTools = {
       return (
         <Card className="bg-card p-6">
           <h2 className="text-xl font-semibold text-card-foreground">
-            Telegram Notification Sent! ✅
+            Telegram Notification Sent ✅
           </h2>
         </Card>
       );

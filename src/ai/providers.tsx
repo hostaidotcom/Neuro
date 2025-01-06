@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { actionTools } from './generic/action';
 import { jinaTools } from './generic/jina';
+import { telegramTools } from './generic/telegram';
 import { utilTools } from './generic/util';
 import { chartTools } from './solana/chart';
 import { definedTools } from './solana/defined-fi';
@@ -129,6 +130,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...jinaTools,
   ...utilTools,
   ...chartTools,
+  ...telegramTools,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {

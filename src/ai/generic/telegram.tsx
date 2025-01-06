@@ -14,6 +14,7 @@ interface TelegramResult {
   data?: string;
   error?: string;
   botId?: string;
+  noFollowUp?: boolean;
 }
 
 export const telegramTools = {
@@ -56,7 +57,11 @@ export const telegramTools = {
           return { success, error, botId };
         }
 
-        return { success: true, data: 'Notification sent successfully' };
+        return {
+          success: true,
+          data: 'Notification sent successfully',
+          noFollowUp: true,
+        };
       } catch (error) {
         return {
           success: false,

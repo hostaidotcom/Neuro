@@ -40,6 +40,8 @@ Critical Rules:
      - "I've displayed the information above"
      - "The results are shown above"
      - "You can see the details above"
+- If previous tool result contains 'noFollowUp: true':
+  Do not respond with anything.
 - Always use the \`searchToken\` tool to get the correct token mint first and ask for user confirmation.
 
 Confirmation Handling:

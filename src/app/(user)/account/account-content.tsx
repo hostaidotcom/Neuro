@@ -8,9 +8,13 @@ import {
   Twitter,
   User,
   useOAuthTokens,
+  usePrivy,
 } from '@privy-io/react-auth';
+import { useConnectWallet, useWallets } from '@privy-io/react-auth';
+import { useSolanaWallets } from '@privy-io/react-auth';
 
 import { WalletCard } from '@/components/dashboard/wallet-card';
+import { PrivyWalletCard } from '@/components/dashboard/wallet-card-privy';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +35,7 @@ import { LoadingStateSkeleton } from './loading-skeleton';
 
 export function AccountContent() {
   const router = useRouter();
+  const { ready } = usePrivy();
   const {
     isLoading,
     user,
@@ -40,7 +45,11 @@ export function AccountContent() {
     unlinkEmail,
     linkDiscord,
     unlinkDiscord,
+    linkWallet,
+    unlinkWallet,
   } = useUser();
+
+  const { createWallet: createSolanaWallet } = useSolanaWallets();
 
   const { reauthorize } = useOAuthTokens({
     onOAuthTokenGrant: (tokens: OAuthTokens, { user }: { user: User }) => {
@@ -60,12 +69,26 @@ export function AccountContent() {
     twitter: privyUser?.twitter as Twitter | undefined,
     email: privyUser?.email?.address,
     phone: privyUser?.phone?.number,
-    walletAddress: privyUser?.wallet?.address || 'No wallet connected',
+    walletAddress: privyUser?.wallet?.address,
     createdAt: formatUserCreationDate(user?.createdAt?.toString()),
     discord: privyUser?.discord as Discord | undefined,
   };
 
   const wallets = user?.wallets || [];
+
+  const allWallets = user?.privyUser.linkedAccounts.filter(
+    (a) => a.type === 'wallet',
+  );
+
+  const linkedSolanaWallet = allWallets.find(
+    (wallet) =>
+      wallet.walletClientType !== 'privy' && wallet.chainType === 'solana',
+  );
+
+  const embeddedSolanaWallets = allWallets.filter(
+    (wallet) =>
+      wallet.walletClientType === 'privy' && wallet.chainType === 'solana',
+  );
   const avatarLabel = userData.walletAddress
     ? userData.walletAddress.substring(0, 2).toUpperCase()
     : '?';
@@ -129,17 +152,6 @@ export function AccountContent() {
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">
-                        Connected Wallet
-                      </Label>
-                      <div className="mt-1">
-                        <CopyableText
-                          text={userData.walletAddress || ''}
-                          showSolscan={true}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">
                         Early Access Program
                       </Label>
                       <div className="mt-1 flex h-8 items-center">
@@ -175,6 +187,46 @@ export function AccountContent() {
             <Card className="bg-sidebar">
               <CardContent className="pt-6">
                 <div className="space-y-4">
+                  {/* Wallet Connection */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent/50">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M17 8H5m12 0a1 1 0 0 1 1 1v2.6M17 8l-4-4M5 8a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.6M5 8l4-4 4 4m6 4h-4a2 2 0 1 0 0 4h4a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1Z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Wallet</p>
+                        <p className="text-xs text-muted-foreground">
+                          {linkedSolanaWallet?.address
+                            ? `${linkedSolanaWallet?.address}`
+                            : 'Not connected'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={
+                        linkedSolanaWallet?.address
+                          ? () => unlinkWallet(linkedSolanaWallet?.address)
+                          : () => linkWallet()
+                      }
+                      className={cn(
+                        'min-w-[100px] text-xs',
+                        linkedSolanaWallet?.address &&
+                          'hover:bg-destructive hover:text-destructive-foreground',
+                      )}
+                    >
+                      {linkedSolanaWallet?.address ? 'Disconnect' : 'Connect'}
+                    </Button>
+                  </div>
                   {/* Twitter Connection */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -296,10 +348,50 @@ export function AccountContent() {
             </Card>
           </section>
 
-          {/* Embedded Wallet Section */}
+          {/* Privy Embedded Wallet Section */}
           <section className="space-y-4">
             <h2 className="text-sm font-medium text-muted-foreground">
-              Embedded Wallet
+              Privy Embedded Wallets
+            </h2>
+            {!ready && (embeddedSolanaWallets?.length ?? 0) === 0 && (
+              <p>Loading Privy wallets...</p>
+            )}
+            {embeddedSolanaWallets?.length > 0 &&
+              embeddedSolanaWallets.map((wallet) => (
+                <PrivyWalletCard key={wallet.address} wallet={wallet} />
+              ))}
+            {ready && (embeddedSolanaWallets?.length ?? 0) === 0 && (
+              <Card className="bg-sidebar">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div>
+                          <p className="text-sm font-medium">Public Key</p>
+                          <p className="text-xs text-muted-foreground">
+                            None created yet
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => createSolanaWallet()}
+                        className={cn('min-w-[100px] text-xs')}
+                      >
+                        Create
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </section>
+
+          {/* Legacy Embedded Wallet Section */}
+          <section className="space-y-4">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Legacy Embedded Wallet
             </h2>
             {wallets?.map((wallet: EmbeddedWallet) => (
               <WalletCard key={wallet.id} wallet={wallet} />

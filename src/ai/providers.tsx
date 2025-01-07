@@ -15,6 +15,7 @@ import { jupiterTools } from './solana/jupiter';
 import { magicEdenTools } from './solana/magic-eden';
 import { pumpfunTools } from './solana/pumpfun';
 import { solanaTools } from './solana/solana';
+import { bundleTools } from './solana/bundle';
 
 const usingAntropic = !!process.env.ANTHROPIC_API_KEY;
 
@@ -133,6 +134,7 @@ export const defaultTools: Record<string, ToolConfig> = {
   ...utilTools,
   ...chartTools,
   ...telegramTools,
+  ...bundleTools,
 };
 
 export function getToolConfig(toolName: string): ToolConfig | undefined {

@@ -1,0 +1,148 @@
+import asyncio
+from solana.rpc.async_api import AsyncClient
+from solana.rpc.commitment import Confirmed
+import pandas as pd
+import numpy as np
+from typing import List, Dict
+import heapq
+
+class SolanaTokenSniperAnalyzer:
+    def __init__(self, mint_address: str, solana_rpc_url: str):
+        self.mint_address = mint_address
+        self.solana_client = AsyncClient(solana_rpc_url)
+        self.token_holders = {}
+        self.bundles = []
+
+    async def fetch_token_holders(self):
+        """
+        Fetch all token holders for the given mint address
+        """
+        try:
+            # Fetch token accounts for the mint
+            token_accounts = await self.solana_client.get_token_largest_accounts(
+                self.mint_address, 
+                commitment=Confirmed
+            )
+            
+            for account in token_accounts['result']['value']:
+                self.token_holders[account['address']] = {
+                    'balance': account['amount'],
+                    'percentage': float(account['amount']) / account['total_supply']
+                }
+        except Exception as e:
+            print(f"Error fetching token holders: {e}")
+
+    async def analyze_transaction_history(self):
+        """
+        Analyze transaction history to identify potential sniper bundles
+        """
+        try:
+            # Fetch transaction signatures related to the token
+            signatures = await self.solana_client.get_signatures_for_address(
+                self.mint_address, 
+                limit=1000
+            )
+
+            bundles = self.identify_sniper_bundles(signatures)
+            return bundles
+        except Exception as e:
+            print(f"Error analyzing transaction history: {e}")
+
+    def identify_sniper_bundles(self, signatures):
+        """
+        Identify potential sniper bundles based on transaction patterns
+        """
+        bundles = []
+        
+        # Grouping logic for snipers
+        wallet_timestamps = {}
+        for sig in signatures:
+            wallet = sig['pubkey']
+            timestamp = sig['blockTime']
+            
+            if wallet not in wallet_timestamps:
+                wallet_timestamps[wallet] = []
+            
+            wallet_timestamps[wallet].append(timestamp)
+        
+        # Detect bundles based on close timestamp clustering
+        for wallet, timestamps in wallet_timestamps.items():
+            if len(timestamps) > 1:
+                # Check timestamp proximity
+                timestamps.sort()
+                bundle_candidates = self.cluster_timestamps(timestamps)
+                
+                for bundle in bundle_candidates:
+                    bundle_info = self.analyze_bundle(wallet, bundle)
+                    bundles.append(bundle_info)
+        
+        return bundles
+
+    def cluster_timestamps(self, timestamps, max_time_diff=60):
+        """
+        Cluster timestamps into potential sniper bundles
+        """
+        bundles = []
+        current_bundle = [timestamps[0]]
+        
+        for ts in timestamps[1:]:
+            if ts - current_bundle[-1] <= max_time_diff:
+                current_bundle.append(ts)
+            else:
+                if len(current_bundle) > 1:
+                    bundles.append(current_bundle)
+                current_bundle = [ts]
+        
+        if len(current_bundle) > 1:
+            bundles.append(current_bundle)
+        
+        return bundles
+
+    def analyze_bundle(self, primary_wallet, timestamps):
+        """
+        Analyze details of a potential sniper bundle
+        """
+        bundle_info = {
+            'primary_wallet': primary_wallet,
+            'timestamps': timestamps,
+            'unique_wallets': set(),
+            'total_sol_spent': 0,
+            'total_tokens_held': 0,
+            'percentage_of_supply': 0
+        }
+        
+        # Additional bundle analysis logic here
+        
+        return bundle_info
+
+    def generate_bundle_report(self, bundles):
+        """
+        Generate a comprehensive report of identified sniper bundles
+        """
+        bundle_data = []
+        for bundle in bundles:
+            bundle_data.append({
+                'Primary Wallet': bundle['primary_wallet'],
+                'Timestamps': bundle['timestamps'],
+                'Unique Wallets': len(bundle['unique_wallets']),
+                'Total SOL Spent': bundle['total_sol_spent'],
+                'Total Tokens Held': bundle['total_tokens_held'],
+                'Percentage of Supply': bundle['percentage_of_supply']
+            })
+        
+        df = pd.DataFrame(bundle_data)
+        return df
+
+# Example usage
+async def main():
+    analyzer = SolanaTokenSniperAnalyzer(
+        mint_address='YourMintAddressHere', 
+        solana_rpc_url='https://api.mainnet-beta.solana.com'
+    )
+    await analyzer.fetch_token_holders()
+    bundles = await analyzer.analyze_transaction_history()
+    report = analyzer.generate_bundle_report(bundles)
+    print(report)
+
+# Run the example
+asyncio.run(main())

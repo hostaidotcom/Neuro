@@ -1,5 +1,19 @@
 # Changelogs
 
+## v0.1.13
+
+- Telegram notification tool
+- Discord Privy config, EAP role linking
+
+## v0.1.12
+
+- Utilize PPQ for AI model endpoint
+
+## v0.1.11
+
+- Initial implementation of price charts
+- Initial implementation of automated actions (recurring actions configured and executed by the agent)
+
 ## v0.1.10
 
 - Message token tracking (model usage) for backend analysis

@@ -1,5 +1,5 @@
-import { User as _PrismaUser } from '@prisma/client';
-import type { Wallet as _PrismaWallet } from '@prisma/client';
+import { Prisma, User as _PrismaUser } from '@prisma/client';
+import type { Action, Wallet as _PrismaWallet } from '@prisma/client';
 import type { Conversation as _PrismaConversation } from '@prisma/client';
 import { User as _PrivyUser } from '@privy-io/react-auth';
 
@@ -27,4 +27,21 @@ export type NeurUser = Pick<
 > & {
   privyUser: PrivyUser;
   hasEAP: boolean;
+  telegramId?: string;
 };
+
+export type NewAction = Omit<Action, 'id'>;
+
+export type ActionWithUser = Prisma.ActionGetPayload<{
+  include: {
+    user: {
+      include: {
+        wallets: true;
+      };
+    };
+  };
+}>;
+
+export type ActionFull = Prisma.ActionGetPayload<{
+  select: { [K in keyof Required<Prisma.ActionSelect>]: true };
+}>;

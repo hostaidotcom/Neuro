@@ -1,6 +1,8 @@
-import { Prisma, Message as PrismaMessage } from '@prisma/client';
+import { Action, Prisma, Message as PrismaMessage } from '@prisma/client';
+import _ from 'lodash';
 
 import prisma from '@/lib/prisma';
+import { NewAction } from '@/types/db';
 
 /**
  * Retrieves a conversation by its ID
@@ -122,6 +124,9 @@ export async function dbDeleteConversation({
 }) {
   try {
     await prisma.$transaction([
+      prisma.action.deleteMany({
+        where: { conversationId },
+      }),
       prisma.message.deleteMany({
         where: { conversationId },
       }),
@@ -163,6 +168,68 @@ export async function dbGetConversations({ userId }: { userId: string }) {
   }
 }
 
+/**
+ * Retrieves all actions that match the specified filters
+ * @param {Object} params - The parameters object
+ * @param {boolean} params.triggered - Boolean to filter triggered actions
+ * @param {boolean} params.paused - Boolean to filter paused actions
+ * @param {boolean} params.completed - Boolean to filter completed actions
+ * @param {number} params.frequency - The frequency of the action
+ * @returns {Promise<Action[]>} Array of actions
+ */
+export async function dbGetActions({
+  triggered,
+  paused,
+  completed,
+}: {
+  triggered: boolean;
+  paused: boolean;
+  completed: boolean;
+}) {
+  try {
+    return await prisma.action.findMany({
+      where: {
+        triggered,
+        paused,
+        completed,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: { user: { include: { wallets: true } } },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to get actions:', {
+      error,
+    });
+    return [];
+  }
+}
+
+export async function dbCreateAction(action: NewAction) {
+  try {
+    return await prisma.action.create({
+      data: {
+        ..._.omit(action, 'conversationId', 'userId'),
+        params: action.params as Prisma.JsonObject,
+        user: {
+          connect: {
+            id: action.userId,
+          },
+        },
+        conversation: {
+          connect: {
+            id: action.conversationId,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to create action:', {
+      error,
+    });
+    return undefined;
+  }
+}
+
 export async function dbCreateTokenStat({
   userId,
   messageIds,
@@ -188,6 +255,57 @@ export async function dbCreateTokenStat({
     });
   } catch (error) {
     console.error('[DB Error] Failed to create token stats:', {
+      error,
+    });
+    return null;
+  }
+}
+
+/**
+ * Updates the Telegram ID for a user
+ * @param {Object} params - The parameters object
+ * @param {string} params.userId - The ID of the user
+ * @param {string} params.telegramId - The new Telegram ID to set
+ * @returns {Promise<User | null>} The updated user object or null if update fails
+ */
+export async function dbUpdateUserTelegramId({
+  userId,
+  telegramId,
+}: {
+  userId: string;
+  telegramId: string;
+}) {
+  try {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { telegramId: telegramId },
+    });
+  } catch (error) {
+    console.error('[DB Error] Failed to update user Telegram ID:', {
+      userId,
+      telegramId,
+      error,
+    });
+    return null;
+  }
+}
+
+/**
+ * Retrieves the Telegram ID for a user
+ * @param {Object} params - The parameters object
+ * @param {string} params.userId - The ID of the user
+ * @returns {Promise<string | null>} The Telegram ID or null if not found/error occurs
+ */
+export async function dbGetUserTelegramId({ userId }: { userId: string }) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { telegramId: true },
+    });
+    return user?.telegramId || null;
+  } catch (error) {
+    console.error('[DB Error] Failed to get user Telegram ID:', {
+      userId,
       error,
     });
     return null;

@@ -1,0 +1,172 @@
+import { Connection, PublicKey } from '@solana/web3.js';  
+import { Agent } from 'agent';  
+  
+interface TokenHolder {  
+   balance: string;  
+   percentage: number;  
+}  
+  
+interface Bundle {  
+   primary_wallet: string;  
+   timestamps: number[];  
+   unique_wallets: Set<string>;  
+   total_sol_spent: number;  
+   total_tokens_held: number;  
+   percentage_of_supply: number;  
+}  
+  
+interface BundleReport {  
+   'Primary Wallet': string;  
+   'Timestamps': number[];  
+   'Unique Wallets': number;  
+   'Total SOL Spent': number;  
+   'Total Tokens Held': number;  
+   'Percentage of Supply': number;  
+}  
+  
+interface SignatureInfo {  
+   pubkey: string;  
+   blockTime: number;  
+}  
+  
+class SniperDetectorAgent extends Agent {  
+   private mint_address: string;  
+   private solana_client: Connection;  
+  
+   constructor(mint_address: string, solana_client: Connection) {  
+      super();  
+      this.mint_address = mint_address;  
+      this.solana_client = solana_client;  
+   }  
+  
+   async start() {  
+      await this.fetchTokenHolders();  
+      const bundles = await this.analyzeTransactionHistory();  
+      const bundleReports = this.generateBundleReport(bundles);  
+      console.log(bundleReports);  
+   }  
+  
+   async fetchTokenHolders(): Promise<void> {  
+      try {  
+        const token_accounts = await this.solana_client.getTokenLargestAccounts(  
+           new PublicKey(this.mint_address),  
+           { commitment: 'confirmed' }  
+        );  
+  
+        // Populate token_holders object  
+        for (const account of token_accounts.result.value) {  
+           // ...  
+        }  
+      } catch (e) {  
+        console.error(`Error fetching token holders: ${e}`);  
+      }  
+   }  
+  
+   async analyzeTransactionHistory(): Promise<Bundle[]> {  
+      try {  
+        const signatures = await this.solana_client.getSignaturesForAddress(  
+           new PublicKey(this.mint_address),  
+           { limit: 1000 }  
+        );  
+        const bundles = this.identifySniperBundles(signatures);  
+        return bundles;  
+      } catch (e) {  
+        console.error(`Error analyzing transaction history: ${e}`);  
+        return [];  
+      }  
+   }  
+  
+   private identifySniperBundles(signatures: SignatureInfo[]): Bundle[] {  
+      const bundles: Bundle[] = [];  
+  
+      // Grouping logic for snipers  
+      const wallet_timestamps: Record<string, number[]> = {};  
+      for (const sig of signatures) {  
+        const wallet = sig.pubkey;  
+        const timestamp = sig.blockTime;  
+  
+        if (!wallet_timestamps[wallet]) {  
+           wallet_timestamps[wallet] = [];  
+        }  
+  
+        wallet_timestamps[wallet].push(timestamp);  
+      }  
+  
+      // Detect bundles based on close timestamp clustering  
+      for (const [wallet, timestamps] of Object.entries(wallet_timestamps)) {  
+        if (timestamps.length > 1) {  
+           // Check timestamp proximity  
+           timestamps.sort((a, b) => a - b);  
+           const bundle_candidates = this.clusterTimestamps(timestamps);  
+  
+           for (const bundle of bundle_candidates) {  
+              const bundle_info = this.analyzeBundle(wallet, bundle);  
+              bundles.push(bundle_info);  
+           }  
+        }  
+      }  
+  
+      return bundles;  
+   }  
+  
+   private clusterTimestamps(timestamps: number[], max_time_diff: number = 60): number[][] {  
+      const bundles: number[][] = [];  
+      let current_bundle: number[] = [timestamps[0]];  
+  
+      for (const ts of timestamps.slice(1)) {  
+        if (ts - current_bundle[current_bundle.length - 1] <= max_time_diff) {  
+           current_bundle.push(ts);  
+        } else {  
+           if (current_bundle.length > 1) {  
+              bundles.push([...current_bundle]);  
+           }  
+           current_bundle = [ts];  
+        }  
+      }  
+  
+      if (current_bundle.length > 1) {  
+        bundles.push(current_bundle);  
+      }  
+  
+      return bundles;  
+   }  
+  
+   private analyzeBundle(primary_wallet: string, timestamps: number[]): Bundle {  
+      const bundle_info: Bundle = {  
+        primary_wallet,  
+        timestamps,  
+        unique_wallets: new Set<string>(),  
+        total_sol_spent: 0,  
+        total_tokens_held: 0,  
+        percentage_of_supply: 0  
+      };  
+  
+      // Additional bundle analysis logic here  
+      // ...  
+  
+      return bundle_info;  
+   }  
+  
+   generateBundleReport(bundles: Bundle[]): BundleReport[] {  
+      if (bundles.length === 0) {  
+        return [];  
+      }  
+  
+      return bundles.map(bundle => ({  
+        'Primary Wallet': bundle.primary_wallet,  
+        'Timestamps': bundle.timestamps,  
+        'Unique Wallets': bundle.unique_wallets.size,  
+        'Total SOL Spent': bundle.total_sol_spent,  
+        'Total Tokens Held': bundle.total_tokens_held,  
+        'Percentage of Supply': bundle.percentage_of_supply  
+      }));  
+   }  
+}  
+  
+// Create a new instance of the agent  
+const mint_address = 'your_mint_address';  
+const solana_client = new Connection('https://api.devnet.solana.com');  
+const agent = new SniperDetectorAgent(mint_address, solana_client);  
+  
+// Start the agent  
+agent.start();

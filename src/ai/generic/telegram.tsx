@@ -134,6 +134,7 @@ export const telegramTools = {
   },
 
   sendTelegramNotification: {
+    userId: null,
     displayName: '📨 Send Telegram Notification',
     isCollapsible: true,
     isExpandedByDefault: true,
@@ -143,21 +144,24 @@ export const telegramTools = {
       username: z.string().optional(),
       message: z.string(),
     }),
-    execute: async ({
+    execute: async function ({
       username,
       message,
     }: {
       username?: string;
       message: string;
-    }) => {
+    }) {
       try {
-        const usernameCheck = await checkTelegramUsername();
+        const usernameCheck = await checkTelegramUsername(
+          this.userId || undefined,
+        );
         if (!username && !usernameCheck.username) {
           return { success: false, error: MISSING_USERNAME_ERROR };
         }
         const finalUsername = username || usernameCheck.username;
         const response = await sendTelegramNotification({
           username: finalUsername,
+          userId: this.userId || undefined,
           text: message,
         });
         if (!response?.data?.data) {

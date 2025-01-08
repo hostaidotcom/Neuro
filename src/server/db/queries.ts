@@ -294,7 +294,7 @@ export async function dbUpdateUserTelegramChat({
   try {
     return await prisma.telegramChat.upsert({
       where: { userId },
-      update: { chatId },
+      update: { username, chatId },
       create: { userId, username, chatId },
     });
   } catch (error) {

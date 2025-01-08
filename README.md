@@ -2,8 +2,17 @@
 
 > The Intelligent Copilot for Solana
 
-Neur is an **open-source**, full-stack application that brings together the power of LLM models and blockchain technology. Designed for the [Solana](https://solana.com/) ecosystem, Neur enables seamless interactions with DeFi protocols, NFTs, and much more.
+Neur is an **open-source**, Here's a basic outline of how you could create a tool to check for bundles/snipers on Solana:
 
+Tool Requirements
+- Solana blockchain API access (e.g., Splinterlands API, Solana Beach API)
+- Python programming language with relevant libraries (e.g., pandas, numpy, requests)
+- Data storage (e.g., SQLite database, CSV files)
+
+Steps to Implement the Tool
+    - Transactions that occur shortly after the mint event
+3. *Bundle Stats Calculation*: For each identified bundle, calculate the following stats:
+    - % supply: Calculate the percentage of the total supply held by 
 [![GitHub stars](https://img.shields.io/github/stars/NeurProjects/neur-app?style=flat-square)](https://github.com/NeurProjects/neur-app/stargazers)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://github.com/NeurProjects/neur-app/blob/main/LICENSE)
 [![GitHub issues](https://img.shields.io/github/issues/NeurProjects/neur-app?style=flat-square)](https://github.com/NeurProjects/neur-app/issues)

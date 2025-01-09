@@ -43,6 +43,8 @@ interface SwapParams {
   outputMint: string;
   amount: number;
   slippageBps?: number;
+  inputSymbol?: string;
+  outputSymbol?: string;
 }
 
 interface SwapResult {
@@ -53,7 +55,8 @@ interface SwapResult {
     outputMint: string;
     amount: number;
     slippageBps: number;
-    tokenSymbol?: string;
+    inputSymbol?: string;
+    outputSymbol?: string;
   };
   error?: string;
 }
@@ -163,51 +166,91 @@ const TokenSearchResult = ({
   );
 };
 
-const SwapResult = ({ result }: { result: SwapResult }) => {
+export function SwapResult({ result }: { result: SwapResult }) {
   if (!result.success) {
     return (
-      <div
-        className={cn(
-          'relative overflow-hidden rounded-2xl bg-destructive/5 p-4',
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-destructive/10 p-2.5">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-base font-medium text-destructive">
-              Transaction Failed
-            </h3>
-            <p className="mt-1 text-sm text-destructive/80">{result.error}</p>
-          </div>
+      <Card className="space-y-3 p-4">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-red-500" />
+          <h2 className="text-sm font-medium text-destructive">Swap Failed</h2>
         </div>
-      </div>
+        <p className="text-xs text-red-300">
+          {result.error ?? 'An unknown error occurred.'}
+        </p>
+      </Card>
     );
   }
 
+  const {
+    signature,
+    inputMint,
+    outputMint,
+    amount,
+    slippageBps,
+    inputSymbol,
+    outputSymbol,
+  } = result.data!;
+
+  const truncatedInput = truncate(inputMint, 4);
+  const truncatedOutput = truncate(outputMint, 4);
+  const truncatedSignature = truncate(signature, 6);
+
   return (
-    <div className={cn('relative overflow-hidden rounded-2xl bg-muted/50 p-4')}>
-      <div className="flex items-center gap-3">
-        <div className="rounded-xl bg-muted p-2.5">
-          <ArrowRightLeft className="h-5 w-5 text-muted-foreground" />
+    <Card className="space-y-3 p-4">
+      <div className="flex items-center gap-2">
+        <CheckCircle2 className="h-5 w-5 text-green-500" />
+        <h2 className="text-sm font-medium text-foreground">Swap Successful</h2>
+      </div>
+
+      <div className="text-sm font-medium text-foreground">
+        Swapped {amount} {inputSymbol?.toUpperCase() ?? truncatedInput} to{' '}
+        {outputSymbol?.toUpperCase() ?? truncatedOutput}
+        {slippageBps ? ` (slippage ${slippageBps} bps)` : null}
+      </div>
+
+      <div className="grid grid-cols-1 gap-1 text-xs md:grid-cols-2 md:gap-x-6 md:gap-y-2">
+        <div className="flex flex-col">
+          <span className="text-muted-foreground">Input Mint</span>
+          <span className="font-medium">{truncatedInput}</span>
         </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-medium">Transaction Sent</h3>
-          <a
-            href={`https://solscan.io/tx/${result.data?.signature}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            View details on Solscan
-            <ExternalLink className="ml-1.5 inline-block h-3 w-3" />
-          </a>
+
+        <div className="flex flex-col">
+          <span className="text-muted-foreground">Output Mint</span>
+          <span className="font-medium">{truncatedOutput}</span>
+        </div>
+
+        <div className="flex flex-col md:col-span-2">
+          <span className="text-muted-foreground">Signature</span>
+          <div className="flex items-center gap-1 font-medium">
+            <span>{truncatedSignature}</span>
+            <button
+              onClick={() => navigator.clipboard.writeText(signature)}
+              className="text-muted-foreground hover:text-foreground"
+              title="Copy Signature"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div className="flex justify-end">
+        <a
+          href={`https://solscan.io/tx/${signature}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'inline-flex items-center gap-1 rounded-md px-2 py-1',
+            'text-xs text-muted-foreground ring-1 ring-border hover:bg-muted/10',
+          )}
+        >
+          <ExternalLink className="h-3 w-3" />
+          View on Solscan
+        </a>
+      </div>
+    </Card>
   );
-};
+}
 
 export function TokenHoldersResult({
   holdersResult,
@@ -327,13 +370,8 @@ export function TransferResult({ result }: { result: TransferResult }) {
     );
   }
 
-  const {
-    signature,
-    receiverAddress,
-    tokenAddress,
-    amount,
-    tokenSymbol = 'SOL',
-  } = result.data!;
+  const { signature, receiverAddress, tokenAddress, amount, tokenSymbol } =
+    result.data!;
 
   const truncatedReceiver = truncate(receiverAddress, 4);
   const truncatedSignature = truncate(signature, 6);
@@ -349,11 +387,11 @@ export function TransferResult({ result }: { result: TransferResult }) {
       </div>
 
       <div className="text-sm font-medium text-foreground">
-        Sent {amount} {tokenSymbol.toUpperCase()} to {truncatedReceiver}
+        Sent {amount} {tokenSymbol?.toUpperCase() ?? truncatedTokenAddress} to{' '}
+        {truncatedReceiver}
       </div>
 
       <div className="grid grid-cols-1 gap-1 text-xs md:grid-cols-2 md:gap-x-6 md:gap-y-2">
-        {/* Token Address */}
         <div className="flex flex-col">
           <span className="text-muted-foreground">Token Address</span>
           <span className="font-medium">{truncatedTokenAddress}</span>
@@ -522,12 +560,16 @@ const swap = {
         .max(10000)
         .optional()
         .describe('Slippage tolerance in basis points (0-10000)'),
+      inputSymbol: z.string().describe('Source token symbol').default(''),
+      outputSymbol: z.string().describe('Target token symbol').default(''),
     }),
     execute: async function ({
       inputMint,
       outputMint,
       amount,
       slippageBps = DEFAULT_OPTIONS.SLIPPAGE_BPS,
+      inputSymbol,
+      outputSymbol,
     }: SwapParams): Promise<SwapResult> {
       try {
         const agent =
@@ -557,6 +599,8 @@ const swap = {
             outputMint,
             amount,
             slippageBps,
+            inputSymbol,
+            outputSymbol,
           },
         };
       } catch (error) {

@@ -487,6 +487,7 @@ const wallet = {
     },
   },
   sendTokens: {
+    agentKit: null,
     displayName: '💸 Send Tokens',
     description: 'Send or transfer tokens to another Solana wallet',
     parameters: z.object({
@@ -495,7 +496,7 @@ const wallet = {
       amount: z.number().min(0.000000001),
       tokenSymbol: z.string().describe('Symbol of the token to send'),
     }),
-    execute: async ({
+    execute: async function ({
       receiverAddress,
       tokenAddress,
       amount,
@@ -505,7 +506,7 @@ const wallet = {
       tokenAddress: string;
       amount: number;
       tokenSymbol?: string;
-    }) => {
+    }) {
       try {
         const agent =
           this.agentKit || (await retrieveAgentKit())?.data?.data?.agent;

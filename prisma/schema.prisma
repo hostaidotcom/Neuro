@@ -22,6 +22,7 @@ model User {
   Rule          Rule[]
   Action        Action[]
   tokenStats    TokenStat[]
+  TelegramChat  TelegramChat[]
   savedPrompts SavedPrompt[]
 
   @@map("users")
@@ -139,6 +140,18 @@ enum Visibility {
   PUBLIC
 }
 
+
+model TelegramChat {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  username  String
+  chatId    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("telegram_chats")
+}
 
 model SavedPrompt {
   id        String   @id @default(cuid())

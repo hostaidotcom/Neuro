@@ -309,8 +309,6 @@ export async function dbUpdateUserTelegramChat({
 
 /**
  * Retrieves the saved prompts for a user
- * @param {Object} params - The parameters object
- * @param {string} params.userId - The ID of the user
  * @returns {Promise<SavedPrompt | null>} The Telegram ID or null if not found/error occurs
  */
 export async function getSavedPrompts(userId: string) {
@@ -340,6 +338,10 @@ export async function getSavedPrompts(userId: string) {
   }
 }
 
+  /**
+   * Saves a prompts for a user
+   * @returns {Promise<SavedPrompt | null>} The Telegram ID or null if not found/error occurs
+   */
 export async function createSavedPrompt(userId: string, title: string, content: string) {
   try {
     console.log('Creating saved prompt:', { userId, title, content });
@@ -361,12 +363,18 @@ export async function createSavedPrompt(userId: string, title: string, content: 
   }
 }
 
+  /**
+   * Deleted a Saved prompt for a user
+   */
 export async function deleteSavedPrompt(id: string) {
   return prisma.savedPrompt.delete({
     where: { id },
   });
 }
 
+  /**
+   * Set a Saved prompt as a Favorite for a user
+   */
 export async function setFavoritePrompt(id: string, isFavorite: boolean) {
   return prisma.savedPrompt.update({
     where: { id },
@@ -374,6 +382,9 @@ export async function setFavoritePrompt(id: string, isFavorite: boolean) {
   });
 }
 
+  /**
+   * Updated the last used time for a Saved prompt for a user
+   */
 export async function updateLastUsedPrompt(id: string) {
   return prisma.savedPrompt.update({
     where: { id },

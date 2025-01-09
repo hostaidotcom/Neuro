@@ -28,7 +28,6 @@ import { ConversationInput } from './conversation-input';
 import { getRandomSuggestions } from './data/suggestions';
 import { SuggestionCard } from './suggestion-card';
 import { SavedPrompt } from '@prisma/client';
-import { getSavedPrompts } from '@/server/db/queries';
 
 const EAP_PRICE = 1.0;
 const RECEIVE_WALLET_ADDRESS =

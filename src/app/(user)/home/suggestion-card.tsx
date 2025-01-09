@@ -5,6 +5,7 @@ import type { Suggestion } from './data/suggestions';
 interface SuggestionCardProps extends Suggestion {
   delay?: number;
   onSelect: (text: string) => void;
+  isPrompt?: boolean;
 }
 
 export function SuggestionCard({
@@ -12,6 +13,7 @@ export function SuggestionCard({
   subtitle,
   delay = 0,
   onSelect,
+  isPrompt = false,
 }: SuggestionCardProps) {
   return (
     <motion.button
@@ -23,7 +25,13 @@ export function SuggestionCard({
         transition: { duration: 0.2 },
       }}
       whileTap={{ scale: 0.99 }}
-      onClick={() => onSelect(title)}
+      onClick={() => {
+        if(isPrompt) {
+          onSelect(subtitle);
+        }else{
+          onSelect(title);
+        }
+      }}
       className="flex flex-col gap-1.5 rounded-xl bg-muted/50 p-3.5 text-left 
         transition-colors duration-200 hover:bg-primary/5"
     >

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { SavedPrompt } from '@prisma/client';
 import { toast } from 'sonner';
 import { useUser } from '@/hooks/use-user';
-import { Trash, Search, Book } from 'lucide-react';
+import { Trash, Search, Book, Star } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
@@ -37,6 +37,27 @@ export default function SavedPromptsPage() {
       toast.success('Prompt deleted successfully');
     } catch (error) {
       toast.error('Failed to delete prompt');
+      console.error(error);
+    }
+  };
+
+  const handleToggleFavorite = async (id: string, currentValue: boolean) => {
+    try {
+      await fetch(`/api/saved-prompts/fav`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isFavorite: !currentValue }),
+      });
+      
+      setSavedPrompts((prev) =>
+        prev.map((prompt) =>
+          prompt.id === id ? { ...prompt, isFavorite: !prompt.isFavorite } : prompt
+        )
+      );
+      
+      toast.success(currentValue ? 'Removed from favorites' : 'Added to favorites');
+    } catch (error) {
+      toast.error('Failed to update favorite status');
       console.error(error);
     }
   };
@@ -80,7 +101,23 @@ export default function SavedPromptsPage() {
                 className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors"
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-md font-medium">{prompt.title}</CardTitle>
+                  <div className="flex items-center space-x-4">
+                    <CardTitle className="text-md font-medium">{prompt.title}</CardTitle>
+                    <button
+                      onClick={() => handleToggleFavorite(prompt.id, prompt.isFavorite)}
+                      className={`transition-colors ${
+                        prompt.isFavorite 
+                          ? 'text-yellow-400 hover:text-yellow-500' 
+                          : 'text-gray-400 hover:text-yellow-400'
+                      }`}
+                      aria-label={prompt.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    >
+                      <Star
+                        className="h-4 w-4"
+                        fill={prompt.isFavorite ? "currentColor" : "none"}
+                      />
+                    </button>
+                  </div>
                   <button
                     onClick={() => handleDelete(prompt.id)}
                     className="text-gray-400 hover:text-red-400 transition-colors"

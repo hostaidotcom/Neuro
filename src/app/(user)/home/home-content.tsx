@@ -65,7 +65,8 @@ export function HomeContent() {
   const MAX_VERIFICATION_ATTEMPTS = 20;
 
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
-
+  const [showViewMore, setShowViewMore] = useState(false);
+  
   const { conversations, refreshConversations } = useConversations(user?.id);
 
   const resetChat = useCallback(() => {
@@ -144,14 +145,19 @@ export function HomeContent() {
   useEffect(() => {
     async function fetchSavedPrompts() {
       if (!user?.id) return;
-      const data = await fetch(`/api/saved-prompts`,{
+      const response = await fetch(`/api/saved-prompts`, {
         method: 'GET',
       });
-      if(!data) return;
-      const prompts = await data.json();
-      console.log("prompts: ");
-      console.log(prompts);
-      setSavedPrompts(prompts.prompts);
+      if (!response.ok) return;
+      const data = await response.json();
+
+      if (data.prompts.length > 4) {
+        setSavedPrompts(data.prompts.slice(0, 4));
+        setShowViewMore(true);
+      } else {
+        setSavedPrompts(data.prompts);
+        setShowViewMore(false);
+      }
     }
 
     fetchSavedPrompts();
@@ -286,11 +292,17 @@ export function HomeContent() {
                       subtitle={prompt.content}
                       delay={0.3 + index * 0.1}
                       onSelect={setInput}
+                      isPrompt={true}
                     />
                   ))}
                 </div>
               </div>
             </BlurFade>
+            {showViewMore && (
+              <Link href="/saved-prompts" className='text-sm text-teal-500 no-underline hover:underline'>
+                View More
+              </Link>
+            )}
           </div>
         )}
 

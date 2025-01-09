@@ -363,3 +363,10 @@ export async function deleteSavedPrompt(id: string) {
     where: { id },
   });
 }
+
+export async function setFavoritePrompt(id: string, isFavorite: boolean) {
+  return prisma.savedPrompt.update({
+    where: { id },
+    data: { isFavorite },
+  });
+}

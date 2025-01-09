@@ -269,7 +269,7 @@ function ChatMessage({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: message.content.slice(0, 20),
+          title: message.content.slice(0, 20)+"...",
           content: message.content,
         }),
       })

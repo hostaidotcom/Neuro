@@ -27,6 +27,8 @@ import { IntegrationsGrid } from './components/integrations-grid';
 import { ConversationInput } from './conversation-input';
 import { getRandomSuggestions } from './data/suggestions';
 import { SuggestionCard } from './suggestion-card';
+import { SavedPrompt } from '@prisma/client';
+import { getSavedPrompts } from '@/server/db/queries';
 
 const EAP_PRICE = 1.0;
 const RECEIVE_WALLET_ADDRESS =
@@ -61,6 +63,8 @@ export function HomeContent() {
   const [verifyingTx, setVerifyingTx] = useState<string | null>(null);
   const [verificationAttempts, setVerificationAttempts] = useState(0);
   const MAX_VERIFICATION_ATTEMPTS = 20;
+
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
 
   const { conversations, refreshConversations } = useConversations(user?.id);
 
@@ -135,6 +139,23 @@ export function HomeContent() {
     setShowChat(true);
     window.history.replaceState(null, '', `/chat/${chatId}`);
   };
+
+
+  useEffect(() => {
+    async function fetchSavedPrompts() {
+      if (!user?.id) return;
+      const data = await fetch(`/api/saved-prompts`,{
+        method: 'GET',
+      });
+      if(!data) return;
+      const prompts = await data.json();
+      console.log("prompts: ");
+      console.log(prompts);
+      setSavedPrompts(prompts.prompts);
+    }
+
+    fetchSavedPrompts();
+  }, [user]);
 
   const handlePurchase = async () => {
     if (!user) return;
@@ -250,6 +271,28 @@ export function HomeContent() {
             onSubmit={handleSend}
           />
         </BlurFade>
+
+      {hasEAP && (
+          <div className="space-y-8">
+            <BlurFade delay={0.2}>
+              <div className="space-y-2">
+                <SectionTitle>Saved Prompts</SectionTitle>
+                <div className="grid grid-cols-2 gap-4">
+                  {savedPrompts.map((prompt, index) => (
+                    <SuggestionCard
+                      id='saved'
+                      key={prompt.id}
+                      title={prompt.title}
+                      subtitle={prompt.content}
+                      delay={0.3 + index * 0.1}
+                      onSelect={setInput}
+                    />
+                  ))}
+                </div>
+              </div>
+            </BlurFade>
+          </div>
+        )}
 
         {hasEAP && (
           <div className="space-y-8">

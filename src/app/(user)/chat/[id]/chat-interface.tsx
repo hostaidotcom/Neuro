@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
 import {
+  Bookmark,
   ChevronDown,
   Image as ImageIcon,
   Loader2,
@@ -29,6 +30,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn, throttle } from '@/lib/utils';
+import { toast } from 'sonner';
+import { useUser } from '@/hooks/use-user';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -242,6 +245,7 @@ function ChatMessage({
   messages,
   onPreviewImage,
 }: ChatMessageProps) {
+  const {user} = useUser();
   const isUser = message.role === 'user';
   const hasAttachments =
     message.experimental_attachments &&
@@ -255,6 +259,26 @@ function ChatMessage({
     /!\[(.*?)\]\((.*?)\s+=(\d+)x(\d+)\)/g,
     (_, alt, src, width, height) => `![${alt}](${src}#size=${width}x${height})`,
   );
+
+  const handleSavePrompt = async () => {
+    try {
+      if(!user){
+        throw new Error('User not found');
+      }
+      const savedPrompt = await fetch('/api/saved-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: message.content.slice(0, 20),
+          content: message.content,
+        }),
+      })
+      toast.success('Prompt saved successfully');
+    } catch (error) {
+      console.error('Failed to save prompt:', error);
+      toast.error('Failed to save prompt');
+    }
+  };
 
   return (
     <div
@@ -361,6 +385,14 @@ function ChatMessage({
 
         {message.toolInvocations && (
           <MessageToolInvocations toolInvocations={message.toolInvocations} />
+        )}
+      </div>
+      <div className="relative">
+        {isUser && (
+          <Bookmark
+            className="absolute top-0 right-0 p-2 cursor-pointer w-10 h-10"
+            onClick={handleSavePrompt}
+          />
         )}
       </div>
     </div>
@@ -634,13 +666,13 @@ export default function ChatInterface({
         <div className="mx-auto w-full max-w-3xl">
           <div className="space-y-4 px-4 pb-36 pt-4">
             {messages.map((message, index) => (
-              <ChatMessage
-                key={message.id}
-                message={message}
-                index={index}
-                messages={messages}
-                onPreviewImage={setPreviewImage}
-              />
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  index={index}
+                  messages={messages}
+                  onPreviewImage={setPreviewImage}
+                />
             ))}
             {isLoading &&
               messages[messages.length - 1]?.role !== 'assistant' && (

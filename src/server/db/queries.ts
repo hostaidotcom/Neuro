@@ -311,3 +311,55 @@ export async function dbGetUserTelegramId({ userId }: { userId: string }) {
     return null;
   }
 }
+
+/**
+ * Retrieves the saved prompts for a user
+ * @param {Object} params - The parameters object
+ * @param {string} params.userId - The ID of the user
+ * @returns {Promise<SavedPrompt | null>} The Telegram ID or null if not found/error occurs
+ */
+export async function getSavedPrompts(userId: string) {
+  try {
+    const prompts = await prisma.savedPrompt.findMany({
+      where: { userId },
+      orderBy: [
+        { isFavorite: 'desc' },
+        { lastUsedAt: 'desc' },
+      ],
+    });
+    return prompts || null;
+  } catch (error) {
+    console.error('[DB Error] Failed to get saved prompts:', {
+      userId,
+      error,
+    });
+    return null;
+  }
+}
+
+export async function createSavedPrompt(userId: string, title: string, content: string) {
+  try {
+    console.log('Creating saved prompt:', { userId, title, content });
+    const prompt = prisma.savedPrompt.create({
+      data: {
+        userId,
+        title,
+        content,
+      },
+    });
+    return prompt;
+  } catch (error) {
+    console.error('[DB Error] Failed to create saved prompt:', {  
+      userId,
+      title,
+      content,
+      error,
+    });
+  }
+}
+
+export async function deleteSavedPrompt(id: string) {
+  return prisma.savedPrompt.delete({
+    where: { id },
+  });
+}

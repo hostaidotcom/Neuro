@@ -15,7 +15,6 @@ model User {
   updatedAt DateTime @updatedAt
 
   earlyAccess Boolean @default(false)
-  telegramId  String?
 
   wallets       Wallet[]
   conversations Conversation[]
@@ -138,7 +137,6 @@ enum Visibility {
   PRIVATE
   PUBLIC
 }
-
 
 model SavedPrompt {
   id        String   @id @default(cuid())

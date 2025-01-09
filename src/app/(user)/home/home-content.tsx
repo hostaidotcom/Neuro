@@ -286,7 +286,7 @@ export function HomeContent() {
                 <div className="grid grid-cols-2 gap-4">
                   {savedPrompts.map((prompt, index) => (
                     <SuggestionCard
-                      id='saved'
+                      id={prompt.id}
                       key={prompt.id}
                       title={prompt.title}
                       subtitle={prompt.content}

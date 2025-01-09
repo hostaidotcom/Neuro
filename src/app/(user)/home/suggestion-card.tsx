@@ -14,6 +14,7 @@ export function SuggestionCard({
   delay = 0,
   onSelect,
   isPrompt = false,
+  id
 }: SuggestionCardProps) {
   return (
     <motion.button
@@ -25,9 +26,14 @@ export function SuggestionCard({
         transition: { duration: 0.2 },
       }}
       whileTap={{ scale: 0.99 }}
-      onClick={() => {
+      onClick={async() => {
         if(isPrompt) {
           onSelect(subtitle);
+          await fetch('/api/saved-prompts/lastUsed', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({id})
+          })
         }else{
           onSelect(title);
         }

@@ -323,16 +323,24 @@ export async function getSavedPrompts(userId: string) {
     const prompts = await prisma.savedPrompt.findMany({
       where: { userId },
       orderBy: [
+        // First, sort by isFavorite, favoring true values (i.e., isFavorite = true)
         { isFavorite: 'desc' },
-        { lastUsedAt: 'desc' },
+        
+        // Second, sort by lastUsedAt, placing the most recent first.
+        // null values will be handled in the following way:
+        // - If lastUsedAt is null, it should come after valid Date strings.
+        {
+          lastUsedAt: {
+            sort: 'desc',
+            nulls: 'last',  // Ensures that null values come last when ordering by date
+          }
+        }
       ],
     });
+
     return prompts || null;
   } catch (error) {
-    console.error('[DB Error] Failed to get saved prompts:', {
-      userId,
-      error,
-    });
+    console.error('[DB Error] Failed to get saved prompts:', { userId, error });
     return null;
   }
 }
@@ -368,5 +376,12 @@ export async function setFavoritePrompt(id: string, isFavorite: boolean) {
   return prisma.savedPrompt.update({
     where: { id },
     data: { isFavorite },
+  });
+}
+
+export async function updateLastUsedPrompt(id: string) {
+  return prisma.savedPrompt.update({
+    where: { id },
+    data: { lastUsedAt: new Date() },
   });
 }

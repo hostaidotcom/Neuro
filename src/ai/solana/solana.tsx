@@ -1,7 +1,13 @@
 import Image from 'next/image';
 
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-import { AlertCircle, ArrowRightLeft, ExternalLink } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowRightLeft,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+} from 'lucide-react';
 import { z } from 'zod';
 
 import { WalletPortfolio } from '@/components/message/wallet-portfolio';
@@ -22,6 +28,15 @@ const DEFAULT_OPTIONS = {
   SLIPPAGE_BPS: 300, // 3% default slippage
 } as const;
 
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+
+function truncate(str: string, length = 6) {
+  if (!str) return '';
+  const start = str.slice(0, length);
+  const end = str.slice(-length);
+  return `${start}...${end}`;
+}
+
 // Types
 interface SwapParams {
   inputMint: string;
@@ -38,6 +53,19 @@ interface SwapResult {
     outputMint: string;
     amount: number;
     slippageBps: number;
+    tokenSymbol?: string;
+  };
+  error?: string;
+}
+
+interface TransferResult {
+  success: boolean;
+  data?: {
+    signature: string;
+    receiverAddress: string;
+    tokenAddress: string;
+    amount: number;
+    tokenSymbol?: string;
   };
   error?: string;
 }
@@ -281,6 +309,89 @@ export function TokenHoldersResult({
   );
 }
 
+export function TransferResult({ result }: { result: TransferResult }) {
+  if (!result.success) {
+    return (
+      <Card className="space-y-3 p-4">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-red-500" />
+          <h2 className="text-sm font-medium text-destructive">
+            Transaction Failed
+          </h2>
+        </div>
+
+        <p className="text-xs text-red-300">
+          {result.error ?? 'An unknown error occurred.'}
+        </p>
+      </Card>
+    );
+  }
+
+  const {
+    signature,
+    receiverAddress,
+    tokenAddress,
+    amount,
+    tokenSymbol = 'SOL',
+  } = result.data!;
+
+  const truncatedReceiver = truncate(receiverAddress, 4);
+  const truncatedSignature = truncate(signature, 6);
+  const truncatedTokenAddress = truncate(tokenAddress, 4);
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div className="flex items-center gap-2">
+        <CheckCircle2 className="h-5 w-5 text-green-500" />
+        <h2 className="text-sm font-medium text-foreground">
+          Transfer Successful
+        </h2>
+      </div>
+
+      <div className="text-sm font-medium text-foreground">
+        Sent {amount} {tokenSymbol.toUpperCase()} to {truncatedReceiver}
+      </div>
+
+      <div className="grid grid-cols-1 gap-1 text-xs md:grid-cols-2 md:gap-x-6 md:gap-y-2">
+        {/* Token Address */}
+        <div className="flex flex-col">
+          <span className="text-muted-foreground">Token Address</span>
+          <span className="font-medium">{truncatedTokenAddress}</span>
+        </div>
+
+        <div className="flex flex-col">
+          <span className="text-muted-foreground">Signature</span>
+          <div className="flex items-center gap-1 font-medium">
+            <span>{truncatedSignature}</span>
+            <button
+              onClick={() => navigator.clipboard.writeText(signature)}
+              className="text-muted-foreground hover:text-foreground"
+              title="Copy Signature"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <a
+          href={`https://solscan.io/tx/${signature}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'inline-flex items-center gap-1 rounded-md px-2 py-1',
+            'text-xs text-muted-foreground ring-1 ring-border hover:bg-muted/10',
+          )}
+        >
+          <ExternalLink className="h-3 w-3" />
+          View on Solscan
+        </a>
+      </div>
+    </Card>
+  );
+}
+
 const wallet = {
   resolveWalletAddressFromDomain: {
     displayName: '🔍 Resolve Solana Domain',
@@ -335,6 +446,61 @@ const wallet = {
       const result = (raw as { data: any }).data;
       if (!result || typeof result !== 'object') return null;
       return <WalletPortfolio data={result} />;
+    },
+  },
+  sendTokens: {
+    displayName: '💸 Send Tokens',
+    description: 'Send or transfer tokens to another Solana wallet',
+    parameters: z.object({
+      receiverAddress: publicKeySchema,
+      tokenAddress: publicKeySchema,
+      amount: z.number().min(0.000000001),
+      tokenSymbol: z.string().describe('Symbol of the token to send'),
+    }),
+    execute: async ({
+      receiverAddress,
+      tokenAddress,
+      amount,
+      tokenSymbol,
+    }: {
+      receiverAddress: string;
+      tokenAddress: string;
+      amount: number;
+      tokenSymbol?: string;
+    }) => {
+      try {
+        const agent =
+          this.agentKit || (await retrieveAgentKit())?.data?.data?.agent;
+
+        if (!agent) {
+          throw new Error('Failed to retrieve agent');
+        }
+
+        const signature = await agent.transfer(
+          new PublicKey(receiverAddress),
+          amount,
+          tokenAddress !== SOL_MINT ? new PublicKey(tokenAddress) : undefined,
+        );
+
+        return {
+          success: true,
+          data: {
+            signature,
+            receiverAddress,
+            tokenAddress,
+            amount,
+            tokenSymbol,
+          },
+        };
+      } catch (error) {
+        throw new Error(
+          `Failed to transfer tokens: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
+    },
+    render: (raw: unknown) => {
+      const result = raw as TransferResult;
+      return <TransferResult result={result} />;
     },
   },
 };

@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { Card } from '@/components/ui/card';
 import { verifyUser } from '@/server/actions/user';
 import { dbCreateAction } from '@/server/db/queries';
+import { useActionStore } from '@/store/action-store';
+import { emitActionCreated } from '@/lib/events';
+import { ActionEmitter } from '@/components/action-emitter';
 
 interface CreateActionResultProps {
   id: string;
@@ -160,17 +163,17 @@ const createActionTool = {
       });
 
       if (!action) {
+        console.log('[Action Tool] Failed to create action');
         return { success: false, error: 'Failed to create action' };
       }
 
+      console.log('[Action Tool] Action created successfully:', action);
       return { success: true, data: action };
     } catch (error: any) {
+      console.log('[Action Tool] Error creating action:', error);
       return {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Unknown error creating action',
+        error: error instanceof Error ? error.message : 'Unknown error creating action',
       };
     }
   },
@@ -202,12 +205,15 @@ const createActionTool = {
     };
 
     return (
-      <CreateActionResult
-        id={id}
-        description={description}
-        frequency={frequency}
-        maxExecutions={maxExecutions}
-      />
+      <>
+        <ActionEmitter actionId={id} />
+        <CreateActionResult
+          id={id}
+          description={description}
+          frequency={frequency}
+          maxExecutions={maxExecutions}
+        />
+      </>
     );
   },
 };

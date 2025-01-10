@@ -24,7 +24,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SolanaUtils } from '@/lib/solana';
 import { cn } from '@/lib/utils';
-import { embeddedWalletSendSOL } from '@/server/actions/wallet';
 import { EmbeddedWallet } from '@/types/db';
 
 import { Button } from '../ui/button';
@@ -77,11 +76,15 @@ export function WalletCard({ wallet }: { wallet: EmbeddedWallet }) {
       setIsLoading(true);
       setErrorMessage(null);
 
-      const result = await embeddedWalletSendSOL({
-        walletId: wallet.id,
-        recipientAddress,
-        amount: parseFloat(amount),
-      });
+      const result = {
+        data: {
+          success: false,
+          error: 'Failed to send SOL (error: not implemented)',
+          data: {
+            error: 'Failed to send SOL (error: not implemented)',
+          },
+        },
+      };
       const data = result?.data;
       const txHash = data?.data;
 
@@ -166,15 +169,6 @@ export function WalletCard({ wallet }: { wallet: EmbeddedWallet }) {
               >
                 <Banknote className="mr-2 h-4 w-4" />
                 <span>Fund</span>
-              </Button>
-
-              {/* Send SOL Button */}
-              <Button
-                variant="outline"
-                onClick={() => setIsSendDialogOpen(true)}
-              >
-                <ArrowUpDown className="mr-2 h-4 w-4" />
-                <span>Send</span>
               </Button>
             </div>
           </div>

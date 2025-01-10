@@ -8,8 +8,16 @@ import {
   type ConnectedSolanaWallet,
   WalletWithMetadata,
 } from '@privy-io/react-auth';
-import { useFundWallet } from '@privy-io/react-auth/solana';
-import { ArrowUpDown, Banknote, HelpCircle, Loader2 } from 'lucide-react';
+import { useDelegatedActions } from '@privy-io/react-auth';
+import { useFundWallet, useSolanaWallets } from '@privy-io/react-auth/solana';
+import {
+  ArrowRightFromLine,
+  ArrowUpDown,
+  Banknote,
+  HelpCircle,
+  Loader2,
+  User,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -42,6 +50,8 @@ import { Button } from '../ui/button';
  */
 export function PrivyWalletCard({ wallet }: { wallet: WalletWithMetadata }) {
   const { fundWallet } = useFundWallet();
+  const { exportWallet } = useSolanaWallets();
+  const { delegateWallet, revokeWallets } = useDelegatedActions();
   const [isLoading, setIsLoading] = useState(false);
   const [sendStatus, setSendStatus] = useState<
     'idle' | 'processing' | 'success' | 'error'
@@ -49,13 +59,11 @@ export function PrivyWalletCard({ wallet }: { wallet: WalletWithMetadata }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch SOL balance with auto-refresh every 30 seconds
-  // const { data: balance = 0, isLoading: isBalanceLoading } = useSWR(
-  //   ['solana-balance', wallet.address],
-  //   () => SolanaUtils.getBalance(wallet.address),
-  //   { refreshInterval: 60000 },
-  // );
-  const isBalanceLoading = false;
-  const balance = 0;
+  const { data: balance = 0, isLoading: isBalanceLoading } = useSWR(
+    ['solana-balance', wallet.address],
+    () => SolanaUtils.getBalance(wallet.address),
+    { refreshInterval: 60000 },
+  );
 
   /**
    * Handles sending SOL to another address
@@ -76,6 +84,19 @@ export function PrivyWalletCard({ wallet }: { wallet: WalletWithMetadata }) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const onDelegate = async () => {
+    if (!wallet || wallet.delegated) return; // Button is disabled to prevent this case
+    await delegateWallet({
+      address: wallet.address,
+      chainType: 'solana',
+    });
+  };
+
+  const onRevoke = async () => {
+    if (!wallet.delegated) return; // Button is disabled to prevent this case
+    await revokeWallets();
   };
 
   return (
@@ -119,12 +140,36 @@ export function PrivyWalletCard({ wallet }: { wallet: WalletWithMetadata }) {
                 <Banknote className="mr-2 h-4 w-4" />
                 <span>Fund</span>
               </Button>
-
-              {/* Send SOL Button */}
-              <Button variant="outline">
-                <ArrowUpDown className="mr-2 h-4 w-4" />
-                <span>Send</span>
+              <Button
+                variant="outline"
+                onClick={() => exportWallet({ address: wallet.address })}
+              >
+                <ArrowRightFromLine className="mr-2 h-4 w-4" />
+                <span>Export</span>
               </Button>
+
+              {/* Delegate Button */}
+              {!wallet.delegated && (
+                <Button
+                  variant="outline"
+                  disabled={wallet.delegated}
+                  onClick={onDelegate}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Delegate</span>
+                </Button>
+              )}
+
+              {wallet.delegated && (
+                <Button
+                  variant="outline"
+                  disabled={!wallet.delegated}
+                  onClick={onRevoke}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Revoke Delegation</span>
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>

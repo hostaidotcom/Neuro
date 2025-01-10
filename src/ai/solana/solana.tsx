@@ -8,6 +8,7 @@ import {
   Copy,
   ExternalLink,
 } from 'lucide-react';
+import { Transform } from 'stream';
 import { z } from 'zod';
 
 import { WalletPortfolio } from '@/components/message/wallet-portfolio';

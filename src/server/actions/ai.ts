@@ -1,16 +1,18 @@
 'use server';
 
+import { PublicKey } from '@solana/web3.js';
 import { type CoreUserMessage, generateText } from 'ai';
-import { SolanaAgentKit } from 'solana-agent-kit';
+import { BaseWallet, SolanaAgentKit, WalletAdapter } from 'solana-agent-kit';
 import { z } from 'zod';
 
 import { defaultModel } from '@/ai/providers';
 import { RPC_URL } from '@/lib/constants';
 import prisma from '@/lib/prisma';
 import { ActionEmptyResponse, actionClient } from '@/lib/safe-action';
+import { PrivyEmbeddedWallet } from '@/lib/solana/PrivyEmbeddedWallet';
 import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
 
-import { verifyUser } from './user';
+import { getPrivyClient, verifyUser } from './user';
 
 export async function generateTitleFromUserMessage({
   message,
@@ -62,6 +64,7 @@ export const retrieveAgentKit = actionClient.action(async () => {
   const wallet = await prisma.wallet.findFirst({
     where: {
       ownerId: userId,
+      active: true,
     },
   });
 
@@ -71,9 +74,26 @@ export const retrieveAgentKit = actionClient.action(async () => {
 
   console.log('[retrieveAgentKit] wallet', wallet.publicKey);
 
-  const privateKey = await decryptPrivateKey(wallet?.encryptedPrivateKey);
+  let walletAdapter: WalletAdapter;
+  if (wallet.encryptedPrivateKey) {
+    walletAdapter = new BaseWallet(
+      await decryptPrivateKey(wallet?.encryptedPrivateKey),
+    );
+  } else {
+    const privyClientResponse = await getPrivyClient();
+    const privyClient = privyClientResponse?.data;
+    if (!privyClient) {
+      return { success: false, error: 'PRIVY_CLIENT_NOT_FOUND' };
+    }
+    walletAdapter = new PrivyEmbeddedWallet(
+      privyClient,
+      new PublicKey(wallet.publicKey),
+    );
+  }
+
+  //const privateKey = await decryptPrivateKey(wallet?.encryptedPrivateKey);
   const openaiKey = process.env.OPENAI_API_KEY!;
-  const agent = new SolanaAgentKit(privateKey, RPC_URL, {
+  const agent = new SolanaAgentKit(walletAdapter, RPC_URL, {
     OPENAI_API_KEY: openaiKey,
   });
 

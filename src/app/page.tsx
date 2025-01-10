@@ -30,6 +30,7 @@ import { IntegrationsBackground } from '@/components/ui/integrations-background'
 import Marquee from '@/components/ui/marquee';
 import { RainbowButton } from '@/components/ui/rainbow-button';
 import { cn } from '@/lib/utils';
+import { syncPrivyEmbeddedWallets } from '@/server/actions/user';
 
 const navItems = [
   { label: 'Github', href: 'https://git.new/neur', icon: GitHubLogoIcon },
@@ -376,13 +377,14 @@ export default function Home() {
   const isMaintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true';
   const router = useRouter();
   let { login } = useLogin({
-    onComplete: (
+    onComplete: async (
       user,
       isNewUser,
       wasAlreadyAuthenticated,
       loginMethod,
       loginAccount,
     ) => {
+      await syncPrivyEmbeddedWallets();
       router.push('/home');
     },
   });

@@ -163,14 +163,13 @@ const createActionTool = {
       });
 
       if (!action) {
-        console.log('[Action Tool] Failed to create action');
         return { success: false, error: 'Failed to create action' };
       }
 
-      console.log('[Action Tool] Action created successfully:', action);
+      
       return { success: true, data: action };
     } catch (error: any) {
-      console.log('[Action Tool] Error creating action:', error);
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error creating action',

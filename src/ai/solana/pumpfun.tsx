@@ -1,9 +1,8 @@
-import { ExternalLink } from 'lucide-react';
-import { z } from 'zod';
-
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ExternalLink } from 'lucide-react';
 import { retrieveAgentKit } from '@/server/actions/ai';
+import { z } from 'zod';
 
 interface LaunchResultProps {
   signature: string;
@@ -120,7 +119,8 @@ export const pumpfunTools = {
     }) {
       try {
         const agent =
-          this.agentKit || (await retrieveAgentKit())?.data?.data?.agent;
+          this.agentKit ||
+          (await retrieveAgentKit(undefined))?.data?.data?.agent;
 
         if (!agent) {
           return { success: false, error: 'Failed to retrieve agent' };

@@ -576,7 +576,8 @@ const swap = {
     }: SwapParams): Promise<SwapResult> {
       try {
         const agent =
-          this.agentKit || (await retrieveAgentKit())?.data?.data?.agent;
+          this.agentKit ||
+          (await retrieveAgentKit(undefined))?.data?.data?.agent;
 
         if (!agent) {
           throw new Error('Failed to retrieve agent');

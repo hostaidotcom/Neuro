@@ -28,7 +28,6 @@ import { WalletCard } from '@/components/dashboard/wallet-card';
 import { cn } from '@/lib/utils';
 import { useEmbeddedWallets } from '@/hooks/use-wallets';
 import { useRouter } from 'next/navigation';
-import useSWR from 'swr';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { useUser } from '@/hooks/use-user';
 

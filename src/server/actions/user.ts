@@ -32,7 +32,20 @@ const getOrCreateUser = actionClient
     const existingUser = await prisma.user.findUnique({
       where: { privyId: userId },
       include: {
-        wallets: true,
+        wallets: {
+          select: {
+            id: true,
+            ownerId: true,
+            name: true,
+            publicKey: true,
+            walletSource: true,
+            delegated: true,
+            active: true,
+          },
+          where: {
+            active: true,
+          },
+        },
       },
     });
 
@@ -95,6 +108,9 @@ export const verifyUser = actionClient.action<
         wallets: {
           select: {
             publicKey: true,
+          },
+          where: {
+            active: true,
           },
         },
       },

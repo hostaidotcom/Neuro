@@ -1,14 +1,16 @@
 'use server';
 
-import { cookies } from 'next/headers';
-
-import { PrivyClient } from '@privy-io/server-auth';
-import { WalletWithMetadata } from '@privy-io/server-auth';
-import { z } from 'zod';
-
-import prisma from '@/lib/prisma';
 import { ActionResponse, actionClient } from '@/lib/safe-action';
-import { PrismaUser } from '@/types/db';
+import { EmbeddedWallet, PrismaUser } from '@/types/db';
+
+import { Email } from '@privy-io/react-auth';
+import { PrivyClient } from '@privy-io/server-auth';
+import { Wallet } from '@prisma/client';
+import { WalletWithMetadata } from '@privy-io/server-auth';
+import { cookies } from 'next/headers';
+import { generateEncryptedKeyPair } from '@/lib/solana/wallet-generator';
+import prisma from '@/lib/prisma';
+import { z } from 'zod';
 
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET;
@@ -44,11 +46,28 @@ const getOrCreateUser = actionClient
       },
     });
 
+    const { publicKey, encryptedPrivateKey } = await generateEncryptedKeyPair();
+    const initalWallet = await prisma.wallet.create({
+      data: {
+        ownerId: createdUser.id,
+        name: 'Default',
+        publicKey,
+        encryptedPrivateKey,
+      },
+    });
+
     return {
       success: true,
       data: {
         ...createdUser,
-        wallets: [], // Do not initialize legacy wallet
+        wallets: [
+          {
+            id: initalWallet.id,
+            ownerId: initalWallet.ownerId,
+            name: initalWallet.name,
+            publicKey: initalWallet.publicKey,
+          },
+        ],
       },
     };
   });
@@ -127,8 +146,8 @@ export const getUserData = actionClient.action<ActionResponse<PrismaUser>>(
   },
 );
 
-export const syncPrivyEmbeddedWallets = actionClient.action<
-  ActionResponse<PrismaUser>
+export const syncEmbeddedWallets = actionClient.action<
+  ActionResponse<{ wallets: EmbeddedWallet[] }>
 >(async () => {
   const response = await getUserData();
   if (!response?.data?.success || !response.data?.data) {
@@ -179,7 +198,20 @@ export const syncPrivyEmbeddedWallets = actionClient.action<
     return { success: false, error: 'Error retrieving updated user' };
   }
 
-  return { success: true };
+  const userWallets = await prisma.wallet.findMany({
+    where: { ownerId: userData.id },
+    select: {
+      id: true,
+      publicKey: true,
+      walletSource: true,
+      delegated: true,
+      name: true,
+      ownerId: true,
+      active: true,
+    },
+  });
+
+  return { success: true, data: { wallets: userWallets } };
 });
 
 export const getPrivyClient = actionClient.action(

@@ -1,43 +1,42 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Discord,
   OAuthTokens,
   Twitter,
   User,
+  WalletWithMetadata,
   useOAuthTokens,
   usePrivy,
 } from '@privy-io/react-auth';
-import { useConnectWallet, useWallets } from '@privy-io/react-auth';
-import { useSolanaWallets } from '@privy-io/react-auth';
-
-import { WalletCard } from '@/components/dashboard/wallet-card';
-import { PrivyWalletCard } from '@/components/dashboard/wallet-card-privy';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { CopyableText } from '@/components/ui/copyable-text';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { useUser } from '@/hooks/use-user';
-import { cn } from '@/lib/utils';
 import {
   formatPrivyId,
   formatUserCreationDate,
   formatWalletAddress,
 } from '@/lib/utils/format';
 import { getUserID, grantDiscordRole } from '@/lib/utils/grant-discord-role';
-import { EmbeddedWallet } from '@/types/db';
 
+import { Button } from '@/components/ui/button';
+import { CopyableText } from '@/components/ui/copyable-text';
+import { EmbeddedWallet } from '@/types/db';
+import { Label } from '@/components/ui/label';
 import { LoadingStateSkeleton } from './loading-skeleton';
+import { Separator } from '@/components/ui/separator';
+import { WalletCard } from '@/components/dashboard/wallet-card';
+import { cn } from '@/lib/utils';
+import { useEmbeddedWallets } from '@/hooks/use-wallets';
+import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
+import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { useUser } from '@/hooks/use-user';
 
 export function AccountContent() {
   const router = useRouter();
   const { ready } = usePrivy();
   const {
-    isLoading,
+    isLoading: isUserLoading,
     user,
     linkTwitter,
     unlinkTwitter,
@@ -49,6 +48,13 @@ export function AccountContent() {
     unlinkWallet,
   } = useUser();
 
+  const {
+    data: embeddedWallets = [],
+    error: walletsError,
+    isLoading: isWalletsLoading,
+    mutate: mutateWallets,
+  } = useEmbeddedWallets();
+
   const { createWallet: createSolanaWallet } = useSolanaWallets();
 
   const { reauthorize } = useOAuthTokens({
@@ -58,12 +64,18 @@ export function AccountContent() {
     },
   });
 
-  if (isLoading || !user) {
+  if (isUserLoading || isWalletsLoading || !user) {
     return <LoadingStateSkeleton />;
   }
+  if (walletsError) {
+    return (
+      <div className="p-4 text-sm text-red-500">
+        Failed to load wallets: {walletsError.message}
+      </div>
+    );
+  }
 
-  const privyUser = user?.privyUser;
-
+  const privyUser = user.privyUser;
   const userData = {
     privyId: privyUser?.id,
     twitter: privyUser?.twitter as Twitter | undefined,
@@ -74,33 +86,33 @@ export function AccountContent() {
     discord: privyUser?.discord as Discord | undefined,
   };
 
-  const wallets = user?.wallets || [];
-
-  const allWallets = user?.privyUser.linkedAccounts.filter(
-    (a) => a.type === 'wallet',
+  const privyWallets = embeddedWallets.filter(
+    (w: EmbeddedWallet) => w.walletSource === 'PRIVY',
+  );
+  const legacyWallets = embeddedWallets.filter(
+    (w: EmbeddedWallet) => w.walletSource === 'CUSTOM',
   );
 
-  const linkedSolanaWallet = allWallets.find(
-    (wallet) =>
-      wallet.walletClientType !== 'privy' && wallet.chainType === 'solana',
+  const allUserLinkedAccounts = privyUser?.linkedAccounts || [];
+  const linkedSolanaWallet = allUserLinkedAccounts.find(
+    (acct): acct is WalletWithMetadata =>
+      acct.type === 'wallet' &&
+      acct.walletClientType !== 'privy' &&
+      acct.chainType === 'solana',
   );
 
-  const embeddedSolanaWallets = allWallets.filter(
-    (wallet) =>
-      wallet.walletClientType === 'privy' && wallet.chainType === 'solana',
-  );
   const avatarLabel = userData.walletAddress
     ? userData.walletAddress.substring(0, 2).toUpperCase()
     : '?';
 
-  const handleGrantDiscordRole = async (accessToken: string) => {
+  async function handleGrantDiscordRole(accessToken: string) {
     try {
       const discordUserId = await getUserID(accessToken);
       await grantDiscordRole(discordUserId);
     } catch (error) {
       throw new Error(`Failed to grant Discord role: ${error}`);
     }
-  };
+  }
 
   return (
     <div className="flex flex-1 flex-col py-8">
@@ -183,7 +195,6 @@ export function AccountContent() {
             <h2 className="text-sm font-medium text-muted-foreground">
               Connected Accounts
             </h2>
-
             <Card className="bg-sidebar">
               <CardContent className="pt-6">
                 <div className="space-y-4">
@@ -198,7 +209,8 @@ export function AccountContent() {
                           stroke="currentColor"
                           strokeWidth="2"
                         >
-                          <path d="M17 8H5m12 0a1 1 0 0 1 1 1v2.6M17 8l-4-4M5 8a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.6M5 8l4-4 4 4m6 4h-4a2 2 0 1 0 0 4h4a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1Z" />
+                          <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
+                          <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
                         </svg>
                       </div>
                       <div>
@@ -227,6 +239,7 @@ export function AccountContent() {
                       {linkedSolanaWallet?.address ? 'Disconnect' : 'Connect'}
                     </Button>
                   </div>
+
                   {/* Twitter Connection */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -353,39 +366,42 @@ export function AccountContent() {
             <h2 className="text-sm font-medium text-muted-foreground">
               Privy Embedded Wallets
             </h2>
-            {!ready && (embeddedSolanaWallets?.length ?? 0) === 0 && (
-              <p>Loading Privy wallets...</p>
-            )}
-            {embeddedSolanaWallets?.length > 0 &&
-              embeddedSolanaWallets.map((wallet) => (
-                <PrivyWalletCard key={wallet.address} wallet={wallet} />
-              ))}
-            {ready && (embeddedSolanaWallets?.length ?? 0) === 0 && (
-              <Card className="bg-sidebar">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div>
-                          <p className="text-sm font-medium">Public Key</p>
-                          <p className="text-xs text-muted-foreground">
-                            None created yet
-                          </p>
+            {privyWallets.length > 0
+              ? privyWallets.map((wallet) => (
+                  <WalletCard
+                    key={wallet.id}
+                    wallet={wallet}
+                    mutateWallets={mutateWallets}
+                  />
+                ))
+              : ready && (
+                  <Card className="bg-sidebar">
+                    <CardContent className="pt-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div>
+                              <p className="text-sm font-medium">Public Key</p>
+                              <p className="text-xs text-muted-foreground">
+                                None created yet
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              createSolanaWallet().then(() => mutateWallets())
+                            }
+                            className={cn('min-w-[100px] text-xs')}
+                          >
+                            Create
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => createSolanaWallet()}
-                        className={cn('min-w-[100px] text-xs')}
-                      >
-                        Create
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                    </CardContent>
+                  </Card>
+                )}
           </section>
 
           {/* Legacy Embedded Wallet Section */}
@@ -393,8 +409,12 @@ export function AccountContent() {
             <h2 className="text-sm font-medium text-muted-foreground">
               Legacy Embedded Wallet
             </h2>
-            {wallets?.map((wallet: EmbeddedWallet) => (
-              <WalletCard key={wallet.id} wallet={wallet} />
+            {legacyWallets.map((wallet: EmbeddedWallet) => (
+              <WalletCard
+                key={wallet.id}
+                wallet={wallet}
+                mutateWallets={mutateWallets}
+              />
             ))}
           </section>
         </div>

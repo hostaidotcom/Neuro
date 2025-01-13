@@ -1,11 +1,14 @@
 'use server';
 
+import { PublicKey } from '@solana/web3.js';
 import { z } from 'zod';
 
 import prisma from '@/lib/prisma';
 import { ActionResponse, actionClient } from '@/lib/safe-action';
+import { decryptPrivateKey } from '@/lib/solana/wallet-generator';
 import { EmbeddedWallet } from '@/types/db';
 
+import { retrieveAgentKit } from './ai';
 import { verifyUser } from './user';
 
 export const listEmbeddedWallets = actionClient.action<
@@ -116,3 +119,49 @@ export const setActiveWallet = actionClient
       success: true,
     };
   });
+
+export const embeddedWalletSendSOL = actionClient
+  .schema(
+    z.object({
+      walletId: z.string(),
+      recipientAddress: z.string(),
+      amount: z.number(),
+    }),
+  )
+  .action<ActionResponse<string>>(
+    async ({ parsedInput: { walletId, recipientAddress, amount } }) => {
+      const authResult = await verifyUser();
+      const userId = authResult?.data?.data?.id;
+      if (!userId) {
+        return {
+          success: false,
+          error: 'Authentication failed',
+        };
+      }
+      const wallet = await prisma.wallet.findUnique({
+        where: { id: walletId },
+      });
+      if (!wallet || wallet.ownerId !== userId) {
+        return {
+          success: false,
+          error: 'Wallet not found',
+        };
+      }
+      const agent = (await retrieveAgentKit({ walletId }))?.data?.data?.agent;
+      try {
+        const signature = await agent?.transfer(
+          new PublicKey(recipientAddress),
+          amount,
+        );
+        return {
+          success: true,
+          data: signature,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: 'Failed to send SOL (error: ' + error + ')',
+        };
+      }
+    },
+  );

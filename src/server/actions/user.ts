@@ -1,22 +1,23 @@
 'use server';
 
-import { ActionResponse, actionClient } from '@/lib/safe-action';
-import { EmbeddedWallet, PrismaUser } from '@/types/db';
+import { cookies } from 'next/headers';
 
+import { Wallet } from '@prisma/client';
 import { Email } from '@privy-io/react-auth';
 import { PrivyClient } from '@privy-io/server-auth';
-import { Wallet } from '@prisma/client';
 import { WalletWithMetadata } from '@privy-io/server-auth';
-import { cookies } from 'next/headers';
-import { generateEncryptedKeyPair } from '@/lib/solana/wallet-generator';
-import prisma from '@/lib/prisma';
 import { z } from 'zod';
+
+import prisma from '@/lib/prisma';
+import { ActionResponse, actionClient } from '@/lib/safe-action';
+import { generateEncryptedKeyPair } from '@/lib/solana/wallet-generator';
+import { EmbeddedWallet, PrismaUser } from '@/types/db';
 
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET;
 const PRIVY_SIGNING_KEY = process.env.PRIVY_SIGNING_KEY;
 
-if (!PRIVY_APP_ID || !PRIVY_APP_SECRET || !PRIVY_SIGNING_KEY) {
+if (!PRIVY_APP_ID || !PRIVY_APP_SECRET) {
   throw new Error('Missing required Privy environment variables');
 }
 

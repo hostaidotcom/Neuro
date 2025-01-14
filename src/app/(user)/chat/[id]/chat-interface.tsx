@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import Image from 'next/image';
 
+import { SavedPrompt } from '@prisma/client';
 import { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bookmark,
   ChevronDown,
@@ -14,9 +16,11 @@ import {
   SendHorizontal,
   X,
 } from 'lucide-react';
+import { BookmarkIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import { toast } from 'sonner';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 
@@ -26,12 +30,12 @@ import Logo from '@/components/logo';
 import { ToolResult } from '@/components/message/tool-result';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import { useUser } from '@/hooks/use-user';
 import { useWalletPortfolio } from '@/hooks/use-wallet-portfolio';
 import { uploadImage } from '@/lib/upload';
 import { cn, throttle } from '@/lib/utils';
-import { toast } from 'sonner';
-import { useUser } from '@/hooks/use-user';
 
 // Types
 interface UploadingImage extends Attachment {
@@ -245,7 +249,7 @@ function ChatMessage({
   messages,
   onPreviewImage,
 }: ChatMessageProps) {
-  const {user} = useUser();
+  const { user } = useUser();
   const isUser = message.role === 'user';
   const hasAttachments =
     message.experimental_attachments &&
@@ -262,17 +266,17 @@ function ChatMessage({
 
   const handleSavePrompt = async () => {
     try {
-      if(!user){
+      if (!user) {
         throw new Error('User not found');
       }
       const savedPrompt = await fetch('/api/saved-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: message.content.slice(0, 20)+"...",
+          title: message.content.slice(0, 20) + '...',
           content: message.content,
         }),
-      })
+      });
       toast.success('Prompt saved successfully');
     } catch (error) {
       console.error('Failed to save prompt:', error);
@@ -390,7 +394,7 @@ function ChatMessage({
       <div className="relative">
         {isUser && (
           <Bookmark
-            className="absolute top-0 right-0 p-2 cursor-pointer w-10 h-10"
+            className="absolute right-0 top-0 h-10 w-10 cursor-pointer p-2"
             onClick={handleSavePrompt}
           />
         )}
@@ -577,6 +581,166 @@ function useImageUpload() {
   };
 }
 
+function SavedPromptsButton({
+  onSelectPrompt,
+}: {
+  onSelectPrompt: (content: string) => void;
+}) {
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const fetchSavedPrompts = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/saved-prompts');
+      const data = await response.json();
+      setSavedPrompts(data.prompts);
+    } catch (error) {
+      console.error('Failed to fetch saved prompts:', error);
+      toast.error('Failed to load saved prompts');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="absolute bottom-full left-4 z-50 mb-3 select-none">
+      <motion.div
+        layout="preserve-aspect"
+        animate={{
+          width: isExpanded ? 300 : 'auto',
+        }}
+        transition={{
+          type: 'spring',
+          bounce: 0,
+          duration: 0.25,
+        }}
+        className="relative will-change-transform"
+      >
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 340 }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{
+                height: {
+                  type: 'spring',
+                  bounce: 0,
+                  duration: 0.25,
+                },
+                opacity: {
+                  duration: 0.15,
+                },
+              }}
+              className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-2xl bg-black/[0.02] backdrop-blur-[12px] will-change-transform dark:bg-black/10 dark:backdrop-blur-xl"
+            >
+              <div className="flex h-[340px] flex-col bg-white/60 shadow-sm dark:bg-transparent">
+                <div className="flex flex-col gap-3 p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium text-muted-foreground">
+                      Saved Prompts
+                    </div>
+                  </div>
+                </div>
+
+                <ScrollArea className="-mx-3 flex-1 px-3">
+                  <div className="space-y-px">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    ) : savedPrompts.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No saved prompts yet
+                      </div>
+                    ) : (
+                      savedPrompts.map((prompt, index) => (
+                        <motion.button
+                          key={prompt.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                            transition: {
+                              type: 'spring',
+                              bounce: 0,
+                              duration: 0.2,
+                              delay: Math.min(index * 0.015, 0.3),
+                            },
+                          }}
+                          onClick={() => {
+                            onSelectPrompt(prompt.content);
+                            setIsExpanded(false);
+                          }}
+                          className="group block w-full rounded-xl p-2 text-left transition-colors duration-150 ease-out hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
+                        >
+                          <div className="text-sm font-medium text-foreground">
+                            {prompt.title}
+                          </div>
+                          <div className="mt-0.5 text-xs text-muted-foreground">
+                            {new Date(prompt.createdAt).toLocaleDateString()}
+                          </div>
+                        </motion.button>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.div
+          layout="preserve-aspect"
+          className="flex cursor-pointer items-center gap-1.5 rounded-2xl bg-black/[0.02] px-3 py-2 backdrop-blur-[12px] transition-colors hover:bg-black/[0.04] dark:bg-black/10 dark:backdrop-blur-xl dark:hover:bg-black/20"
+          onClick={() => {
+            setIsExpanded(!isExpanded);
+            if (!isExpanded) {
+              fetchSavedPrompts();
+            }
+          }}
+        >
+          <BookmarkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className={cn('min-w-0', isExpanded && 'flex-1')}>
+            <AnimatePresence mode="wait">
+              {isExpanded ? (
+                <motion.span
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ type: 'spring', bounce: 0.2 }}
+                  className="block text-sm text-muted-foreground"
+                >
+                  Saved Prompts
+                </motion.span>
+              ) : (
+                <motion.span
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ type: 'spring', bounce: 0.2 }}
+                  className="block text-sm text-muted-foreground"
+                >
+                  Prompts
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ type: 'spring', bounce: 0.2 }}
+            className="h-4 w-4 shrink-0 text-muted-foreground"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function ChatInterface({
   id,
   initialMessages = [],
@@ -666,13 +830,13 @@ export default function ChatInterface({
         <div className="mx-auto w-full max-w-3xl">
           <div className="space-y-4 px-4 pb-36 pt-4">
             {messages.map((message, index) => (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  index={index}
-                  messages={messages}
-                  onPreviewImage={setPreviewImage}
-                />
+              <ChatMessage
+                key={message.id}
+                message={message}
+                index={index}
+                messages={messages}
+                onPreviewImage={setPreviewImage}
+              />
             ))}
             {isLoading &&
               messages[messages.length - 1]?.role !== 'assistant' && (
@@ -687,9 +851,17 @@ export default function ChatInterface({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background via-background/95 to-background/0" />
         <div className="relative mx-auto w-full max-w-3xl px-4 py-4">
           {/* Floating Wallet */}
-          {portfolio && (
-            <FloatingWallet data={portfolio} isLoading={isPortfolioLoading} />
-          )}
+            <SavedPromptsButton
+              onSelectPrompt={(content) => {
+                if (textareaRef.current) {
+                  textareaRef.current.value = content;
+                  handleInputChange({ target: { value: content } } as any);
+                }
+              }}
+            />
+            {portfolio && (
+              <FloatingWallet data={portfolio} isLoading={isPortfolioLoading} />
+            )}
 
           <form onSubmit={handleFormSubmit} className="space-y-4">
             <div className="relative overflow-hidden rounded-2xl bg-muted">

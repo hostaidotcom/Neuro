@@ -340,7 +340,7 @@ export async function getSavedPrompts(userId: string) {
 
   /**
    * Saves a prompts for a user
-   * @returns {Promise<SavedPrompt | null>} The Telegram ID or null if not found/error occurs
+   * @returns {Promise<SavedPrompt | null>}
    */
 export async function createSavedPrompt(userId: string, title: string, content: string) {
   try {

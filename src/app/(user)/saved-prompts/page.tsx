@@ -1,18 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { SetStateAction, useEffect, useState } from 'react';
 
 import { SavedPrompt } from '@prisma/client';
 import { motion } from 'framer-motion';
-import {
-  Frown,
-  Loader2,
-  Pencil,
-  Plus,
-  Search,
-  Star,
-  Trash,
-} from 'lucide-react';
+import { Loader2, Pencil, Plus, Search, Star, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Combobox } from '@/components/dropdown-selector';
@@ -25,13 +17,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -70,6 +60,136 @@ export type FilterValues =
   | 'latest'
   | 'oldest'
   | 'favorites';
+
+interface ManagePromptAction {
+  action: 'update' | 'delete' | 'save' | null;
+  id: string | null;
+}
+
+interface DeleteDialogBoxProps {
+  promptAction: ManagePromptAction;
+  setPromptAction: React.Dispatch<SetStateAction<ManagePromptAction>>;
+  handleDeletePrompt: () => Promise<void>;
+}
+
+interface EditPromptDialogBoxProps {
+  promptAction: ManagePromptAction;
+  setPromptAction: React.Dispatch<SetStateAction<ManagePromptAction>>;
+  handleEditPrompt: () => Promise<void>;
+  handleSavePrompt: () => Promise<void>;
+  title: string;
+  content: string;
+  setTitle: React.Dispatch<React.SetStateAction<string>>;
+  setContent: React.Dispatch<React.SetStateAction<string>>;
+  isLoading: boolean;
+}
+
+function DeleteDialogBox({
+  promptAction,
+  setPromptAction,
+  handleDeletePrompt,
+}: DeleteDialogBoxProps) {
+  return (
+    <AlertDialog
+      open={promptAction.action === 'delete'}
+      onOpenChange={() =>
+        promptAction.action !== null &&
+        setPromptAction({ action: null, id: null })
+      }
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the saved
+            prompt.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeletePrompt}>
+            Continue
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function EditPromptDialogBox({
+  promptAction,
+  setPromptAction,
+  handleEditPrompt,
+  handleSavePrompt,
+  title,
+  content,
+  setTitle,
+  setContent,
+  isLoading,
+}: EditPromptDialogBoxProps) {
+  return (
+    <Dialog
+      onOpenChange={() => {
+        if (promptAction.action !== null) {
+          setPromptAction({ action: null, id: null });
+        } else {
+          setTitle('');
+          setContent('');
+        }
+      }}
+      open={promptAction.action === 'save' || promptAction.action === 'update'}
+    >
+      <DialogTrigger asChild>
+        <Button
+          onClick={() => setPromptAction({ action: 'save', id: null })}
+          variant="secondary"
+          disabled={isLoading}
+        >
+          Add Prompt <Plus className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>
+            {promptAction.action === 'update' ? 'Edit' : 'Add'} Prompt
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4 py-4">
+          <Input
+            autoComplete="off"
+            id="name"
+            type="text"
+            value={title}
+            placeholder="Title"
+            onChange={(e) => setTitle(e.target.value)}
+            className="col-span-3"
+          />
+          <Textarea
+            id="username"
+            value={content}
+            rows={4}
+            placeholder="Prompt"
+            onChange={(e) => setContent(e.target.value)}
+            className="col-span-3"
+          />
+        </div>
+        <DialogFooter>
+          <Button
+            disabled={isLoading}
+            onClick={
+              promptAction.action === 'update'
+                ? handleEditPrompt
+                : handleSavePrompt
+            }
+            type="submit"
+          >
+            Save {promptAction.action === 'update' ? 'Changes' : 'Prompt'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function SavedPromptsPage() {
   const [filter, setFilter] = useState<FilterValues>('recentlyUsed');
@@ -149,8 +269,6 @@ export default function SavedPromptsPage() {
   }, [filter, savedPrompts]);
 
   async function handleSavePrompt() {
-    setIsLoading(true);
-
     if (!user) {
       toast.error('Unauthorized');
       return;
@@ -162,7 +280,7 @@ export default function SavedPromptsPage() {
       toast.error('Prompt cannot be empty');
       return;
     }
-
+    setIsLoading(true);
     toast.promise(
       fetch('/api/saved-prompts', {
         method: 'POST',
@@ -229,6 +347,14 @@ export default function SavedPromptsPage() {
 
   async function handleEditPrompt() {
     if (promptAction.id === '') return;
+
+    if (!title.trim()) {
+      toast.error('Title cannot be empty');
+      return;
+    } else if (!content.trim()) {
+      toast.error('Prompt cannot be empty');
+      return;
+    }
     setIsLoading(true);
     toast.promise(
       fetch('/api/saved-prompts/edit', {
@@ -322,68 +448,17 @@ export default function SavedPromptsPage() {
           filterOptions={filterOptions}
         />
 
-        <Dialog
-          onOpenChange={() => {
-            if (promptAction.action !== null) {
-              setPromptAction({ action: null, id: null });
-            } else {
-              setTitle('');
-              setContent('');
-            }
-          }}
-          open={
-            promptAction.action === 'save' || promptAction.action === 'update'
-          }
-        >
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => setPromptAction({ action: 'save', id: null })}
-              variant="secondary"
-              disabled={isLoading}
-            >
-              Add Prompt <Plus className="h-4 w-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {promptAction.action === 'update' ? 'Edit' : 'Add'} Prompt
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col gap-4 py-4">
-              <Input
-                autoComplete="off"
-                id="name"
-                type="text"
-                value={title}
-                placeholder="Title"
-                onChange={(e) => setTitle(e.target.value)}
-                className="col-span-3"
-              />
-              <Textarea
-                id="username"
-                value={content}
-                rows={4}
-                placeholder="Prompt"
-                onChange={(e) => setContent(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                disabled={isLoading}
-                onClick={
-                  promptAction.action === 'update'
-                    ? handleEditPrompt
-                    : handleSavePrompt
-                }
-                type="submit"
-              >
-                Save {promptAction.action === 'update' ? 'Changes' : 'Prompt'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <EditPromptDialogBox
+          promptAction={promptAction}
+          setPromptAction={setPromptAction}
+          handleEditPrompt={handleEditPrompt}
+          handleSavePrompt={handleSavePrompt}
+          title={title}
+          content={content}
+          setTitle={setTitle}
+          setContent={setContent}
+          isLoading={isLoading}
+        />
       </div>
 
       {savedPrompts.length === 0 ? (
@@ -463,29 +538,11 @@ export default function SavedPromptsPage() {
         </div>
       )}
 
-      <AlertDialog
-        open={promptAction.action === 'delete'}
-        onOpenChange={() =>
-          promptAction.action !== null &&
-          setPromptAction({ action: null, id: null })
-        }
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              saved prompt.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeletePrompt}>
-              Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteDialogBox
+        promptAction={promptAction}
+        setPromptAction={setPromptAction}
+        handleDeletePrompt={handleDeletePrompt}
+      />
     </div>
   );
 }

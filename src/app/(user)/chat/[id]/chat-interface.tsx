@@ -66,6 +66,15 @@ interface ChatMessageProps {
   onPreviewImage: (preview: ImagePreview) => void;
 }
 
+interface SavedPromptsQuickmenuProps {
+  input: string;
+  fetchingSavedPrompts: boolean;
+  savedPrompts: SavedPrompt[];
+  filteredPrompts: SavedPrompt[];
+  setInput: React.Dispatch<SetStateAction<string>>;
+  updatePromptLastUsedAt: (id: string) => Promise<void>;
+}
+
 interface AttachmentPreviewProps {
   attachment: UploadingImage;
   onRemove: () => void;
@@ -425,6 +434,54 @@ function ChatMessage({
   );
 }
 
+function SavedPromptsQuickmenu({
+  input,
+  fetchingSavedPrompts,
+  savedPrompts,
+  filteredPrompts,
+  setInput,
+  updatePromptLastUsedAt,
+}: SavedPromptsQuickmenuProps) {
+  return (
+    <div
+      style={{ display: input.startsWith('/') ? 'flex' : 'none' }}
+      className="absolute bottom-[150px] left-0 z-[100] max-h-[300px] min-h-[70px] w-full flex-col gap-2 overflow-x-hidden overflow-y-scroll rounded-2xl bg-[#f5f5f5] p-4 dark:bg-[#222222]"
+    >
+      <p className="font-semibold">Saved Prompts</p>
+      {fetchingSavedPrompts ? (
+        <div className="flex h-full w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : savedPrompts.length === 0 ? (
+        <div className="flex h-full w-full items-center justify-center gap-2">
+          No prompts saved yet
+        </div>
+      ) : filteredPrompts.length === 0 ? (
+        <div className=" flex h-full w-full items-center justify-center gap-2">
+          No match found
+        </div>
+      ) : (
+        filteredPrompts.map((filteredPrompt) => (
+          <div
+            onClick={() => {
+              setInput(filteredPrompt.content);
+              updatePromptLastUsedAt(filteredPrompt.id);
+            }}
+            key={filteredPrompt.id}
+            className="flex cursor-pointer flex-col gap-1.5 rounded-[0.5rem] bg-primary/10 p-2 text-left 
+                transition-colors duration-200 hover:bg-primary/5"
+          >
+            <p>{filteredPrompt.title.slice(0, 30) + '...'}</p>
+            <div className="text-xs text-muted-foreground/80">
+              {filteredPrompt.content.slice(0, 50) + '...'}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 function AttachmentPreview({ attachment, onRemove }: AttachmentPreviewProps) {
   return (
     <div className="group relative h-16 w-16 shrink-0">
@@ -776,42 +833,14 @@ export default function ChatInterface({
           )}
 
           <form onSubmit={handleFormSubmit} className="relative space-y-4">
-            <div
-              style={{ display: input.startsWith('/') ? 'flex' : 'none' }}
-              className="absolute bottom-[150px] left-0 z-[100] max-h-[300px] min-h-[70px] w-full flex-col gap-2 overflow-x-hidden overflow-y-scroll rounded-2xl bg-[#f5f5f5] p-4 dark:bg-[#222222]"
-            >
-              <p className="font-semibold">Saved Prompts</p>
-              {fetchingSavedPrompts ? (
-                <div className="flex h-full w-full items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : savedPrompts.length === 0 ? (
-                <div className="flex h-full w-full items-center justify-center gap-2">
-                  No prompts saved yet
-                </div>
-              ) : filteredPrompts.length === 0 ? (
-                <div className=" flex h-full w-full items-center justify-center gap-2">
-                  No match found
-                </div>
-              ) : (
-                filteredPrompts.map((filteredPrompt) => (
-                  <div
-                    onClick={() => {
-                      setInput(filteredPrompt.content);
-                      updatePromptLastUsedAt(filteredPrompt.id);
-                    }}
-                    key={filteredPrompt.id}
-                    className="flex cursor-pointer flex-col gap-1.5 rounded-[0.5rem] bg-primary/10 p-2 text-left 
-                transition-colors duration-200 hover:bg-primary/5"
-                  >
-                    <p>{filteredPrompt.title.slice(0, 30) + '...'}</p>
-                    <div className="text-xs text-muted-foreground/80">
-                      {filteredPrompt.content.slice(0, 50) + '...'}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            <SavedPromptsQuickmenu
+              input={input}
+              fetchingSavedPrompts={fetchingSavedPrompts}
+              savedPrompts={savedPrompts}
+              filteredPrompts={filteredPrompts}
+              setInput={setInput}
+              updatePromptLastUsedAt={updatePromptLastUsedAt}
+            />
 
             <div className="relative overflow-hidden rounded-2xl bg-muted">
               {attachments.length > 0 && (

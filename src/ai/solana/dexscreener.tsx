@@ -417,9 +417,11 @@ export const dexscreenerTools = {
     displayName: '🌟 Latest Token Profiles',
     description:
       'Get the latest token profiles from DexScreener, focusing on Solana tokens. This shows tokens with verified profiles including their descriptions, social links, and branding assets.',
-    parameters: z.object({}),
-    execute: async () => {
-      console.log('[DexScreener] Starting getLatestTokenProfiles execution');
+    parameters: z.object({
+      placeholder: z.string().optional(),
+    }),
+    execute: async ({ placeholder }: { placeholder: string }) => {
+      console.log('[DexScreener] Starting getLatestTokenProfiles execution', placeholder);
       try {
         console.log('[DexScreener] Fetching from token-profiles API');
         const response = await fetch(
@@ -448,9 +450,14 @@ export const dexscreenerTools = {
           profiles.filter((p) => p.chainId === 'solana').length,
         );
 
+        // Return up to first 10 profiles for Solana
+        const solanaProfiles = profiles
+          .filter((p) => p.chainId === 'solana')
+          .slice(0, 10);
+
         return {
           suppressFollowUp: true,
-          data: profiles,
+          data: solanaProfiles,
         };
       } catch (error) {
         console.error('[DexScreener] Error in getLatestTokenProfiles:', error);

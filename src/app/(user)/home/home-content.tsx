@@ -371,23 +371,26 @@ export function HomeContent() {
 
   return (
     <div className="relative h-screen">
-      <div
-        className={cn(
-          'absolute inset-0 transition-opacity duration-300',
-          showChat ? 'pointer-events-none opacity-0' : 'opacity-100',
-        )}
-      >
-        {mainContent}
-      </div>
-
-      <div
-        className={cn(
-          'absolute inset-0 transition-opacity duration-300',
-          showChat ? 'opacity-100' : 'pointer-events-none opacity-0',
-        )}
-      >
-        <ChatInterface id={chatId} initialMessages={messages} />
-      </div>
+      {!showChat && (
+        <div
+          className={cn(
+            'absolute inset-0 transition-opacity duration-300',
+            showChat ? 'pointer-events-none opacity-0' : 'opacity-100',
+          )}
+        >
+          {mainContent}
+        </div>
+      )}
+      {showChat && (
+        <div
+          className={cn(
+            'absolute inset-0 transition-opacity duration-300',
+            showChat ? 'opacity-100' : 'pointer-events-none opacity-0',
+          )}
+        >
+          <ChatInterface id={chatId} initialMessages={messages} />
+        </div>
+      )}
     </div>
   );
 }

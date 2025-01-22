@@ -470,13 +470,8 @@ export const dexscreenerTools = {
     parameters: z.object({
       placeholder: z.string().optional(),
     }),
-    execute: async ({ placeholder }: { placeholder: string }) => {
-      console.log(
-        '[DexScreener] Starting getLatestTokenProfiles execution',
-        placeholder,
-      );
+    execute: async () => {
       try {
-        console.log('[DexScreener] Fetching from token-profiles API');
         const response = await fetch(
           'https://api.dexscreener.com/token-profiles/latest/v1',
           {
@@ -484,24 +479,13 @@ export const dexscreenerTools = {
           },
         );
 
-        console.log('[DexScreener] API Response status:', response.status);
         if (!response.ok) {
-          console.error(
-            '[DexScreener] API Response error:',
-            response.statusText,
-          );
           throw new Error(
             `Failed to fetch token profiles: ${response.statusText}`,
           );
         }
 
-        console.log('[DexScreener] Parsing response as JSON');
         const profiles = (await response.json()) as DexScreenerTokenProfile[];
-        console.log('[DexScreener] Received profiles count:', profiles.length);
-        console.log(
-          '[DexScreener] Solana profiles count:',
-          profiles.filter((p) => p.chainId === 'solana').length,
-        );
 
         // Return up to first 10 profiles for Solana
         const solanaProfiles = profiles
@@ -513,16 +497,13 @@ export const dexscreenerTools = {
           data: solanaProfiles,
         };
       } catch (error) {
-        console.error('[DexScreener] Error in getLatestTokenProfiles:', error);
         throw new Error(
           `Failed to get token profiles: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }
     },
     render: (raw: unknown) => {
-      console.log('[DexScreener] Starting render of token profiles');
       const result = (raw as { data: DexScreenerTokenProfile[] }).data;
-      console.log('[DexScreener] Profiles to render:', result.length);
       return <TokenProfiles profiles={result} />;
     },
   },

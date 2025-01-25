@@ -7,7 +7,7 @@ Neur is an **open-source**, full-stack application that brings together the powe
 
 ![Solana](https://img.shields.io/badge/Solana-14F195?style=flat-square&logo=solana&logoColor=white&color=black)
 
-![Product Demo]!![Neuro](https://github.com/user-attachments/assets/9e8f4799-1eec-4e16-9aa3-78a6e08b115e)
+![Neuro](https://github.com/user-attachments/assets/9e8f4799-1eec-4e16-9aa3-78a6e08b115e)
 
 
 

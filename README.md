@@ -1,6 +1,6 @@
 # Neur
 
-> The Intelligent Copilot for Solana
+> Neuro trading agent on Solana
 
 Neur is an **open-source**, full-stack application that brings together the power of LLM models and blockchain technology. Designed for the [Solana](https://solana.com/) ecosystem, Neur enables seamless interactions with DeFi protocols, NFTs, and much more.
 
@@ -16,7 +16,7 @@ Neur is an **open-source**, full-stack application that brings together the powe
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
 ![Solana](https://img.shields.io/badge/Solana-14F195?style=flat-square&logo=solana&logoColor=white&color=black)
 
-![Product Demo](./public/product.png)
+![Product Demo]([./public/product.png](https://www.dropbox.com/scl/fi/9v9kpcagxvek3j00f153h/Neuro?rlkey=zrewbj44zdy9ix9rl8bv80d0e&st=4h4ijfdo&dl=0))
 
 ## Features
 
